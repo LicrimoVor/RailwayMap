@@ -12,6 +12,7 @@ from app.models import (
     Layer,
     RailwayEvent,
     RailwaySegment,
+    RailwaySegmentChunk,
     SegmentParameter,
     Station,
 )
@@ -20,6 +21,7 @@ from app.models import (
 def test_stage1_tables_are_registered() -> None:
     expected_tables = {
         "railway_segments",
+        "railway_segment_chunks",
         "stations",
         "cities",
         "kilometer_points",
@@ -35,7 +37,8 @@ def test_stage1_tables_are_registered() -> None:
 
 def test_geometry_column_types_match_domain_model() -> None:
     assert RailwaySegment.__table__.c.geometry.type.geometry_type == "LINESTRING"
-    assert RailwayEvent.__table__.c.geometry.type.geometry_type == "LINESTRING"
+    assert RailwayEvent.__table__.c.geometry.type.geometry_type == "GEOMETRY"
+    assert RailwaySegmentChunk.__table__.c.geometry.type.geometry_type == "LINESTRING"
     assert Station.__table__.c.geometry.type.geometry_type == "POINT"
     assert City.__table__.c.geometry.type.geometry_type == "POINT"
     assert KilometerPoint.__table__.c.geometry.type.geometry_type == "POINT"
@@ -55,6 +58,7 @@ def test_core_relationships_are_declared() -> None:
     assert RailwaySegment.events.property.mapper.class_ is RailwayEvent
     assert RailwaySegment.parameters.property.mapper.class_ is SegmentParameter
     assert RailwaySegment.defects.property.mapper.class_ is Defect
+    assert RailwaySegment.chunks.property.mapper.class_ is RailwaySegmentChunk
     assert RailwayEvent.event_type.property.mapper.class_ is EventType
 
 

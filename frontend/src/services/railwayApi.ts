@@ -1,6 +1,9 @@
 import { apiClient } from "./api";
 import type {
   RailwayData,
+  RailwayChunkFeature,
+  RailwayChunkFeatureCollection,
+  RailwayChunkProperties,
   RailwayFeature,
   RailwayFeatureCollection,
   RailwaySegmentProperties,
@@ -11,20 +14,74 @@ import type {
 import { buildRailwaySummary } from "../features/map/utils";
 
 type ApiCollection<T> = T[] | { items?: T[]; features?: T[]; type?: string };
+const PAGE_SIZE = 25_000;
 
 export async function fetchRailwayData(): Promise<RailwayData> {
-  const [segmentsResponse, stationsResponse] = await Promise.all([
-    apiClient.get("/segments"),
-    apiClient.get("/stations")
+  const [segmentPayloads, stationPayloads] = await Promise.all([
+    fetchPagedCollections("/segments"),
+    fetchPagedCollections("/stations")
   ]);
+  const chunkPayloads = await fetchPagedCollections("/segment-chunks");
 
-  const segments = normalizeSegments(segmentsResponse.data);
-  const stations = normalizeStations(stationsResponse.data);
+  const segments = mergeSegmentCollections(segmentPayloads.map(normalizeSegments));
+  const chunks = mergeChunkCollections(chunkPayloads.map(normalizeChunks));
+  const stations = mergeStationCollections(stationPayloads.map(normalizeStations));
 
   return {
     segments,
+    chunks,
     stations,
     summary: buildRailwaySummary(segments, stations)
+  };
+}
+
+async function fetchPagedCollections(endpoint: string): Promise<Array<ApiCollection<Record<string, unknown>>>> {
+  const pages: Array<ApiCollection<Record<string, unknown>>> = [];
+
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const response = await apiClient.get(endpoint, {
+      params: { limit: PAGE_SIZE, offset }
+    });
+    const featureCount = collectionSize(response.data);
+    pages.push(response.data);
+
+    if (featureCount < PAGE_SIZE) {
+      return pages;
+    }
+  }
+}
+
+function collectionSize(payload: ApiCollection<Record<string, unknown>>): number {
+  if (Array.isArray(payload)) {
+    return payload.length;
+  }
+  if (Array.isArray(payload.features)) {
+    return payload.features.length;
+  }
+  if (Array.isArray(payload.items)) {
+    return payload.items.length;
+  }
+  return 0;
+}
+
+function mergeSegmentCollections(collections: RailwayFeatureCollection[]): RailwayFeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: collections.flatMap((collection) => collection.features)
+  };
+}
+
+function mergeChunkCollections(collections: RailwayChunkFeatureCollection[]): RailwayChunkFeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: collections.flatMap((collection) => collection.features)
+  };
+}
+
+function mergeStationCollections(collections: StationFeatureCollection[]): StationFeatureCollection {
+  return {
+    type: "FeatureCollection",
+    features: collections.flatMap((collection) => collection.features)
   };
 }
 
@@ -49,6 +106,18 @@ function normalizeStations(payload: ApiCollection<Record<string, unknown>>): Sta
   return {
     type: "FeatureCollection",
     features: items.map(stationToFeature).filter((item): item is StationFeature => item !== null)
+  };
+}
+
+function normalizeChunks(payload: ApiCollection<Record<string, unknown>>): RailwayChunkFeatureCollection {
+  if (isFeatureCollection(payload)) {
+    return payload as RailwayChunkFeatureCollection;
+  }
+
+  const items = Array.isArray(payload) ? payload : payload.items ?? payload.features ?? [];
+  return {
+    type: "FeatureCollection",
+    features: items.map(chunkToFeature).filter((item): item is RailwayChunkFeature => item !== null)
   };
 }
 
@@ -103,6 +172,30 @@ function stationToFeature(record: Record<string, unknown>): StationFeature | nul
     osm_id: asNullableNumber(record.osm_id),
     name,
     esr_code: asNullableString(record.esr_code)
+  };
+
+  return { type: "Feature", id, geometry, properties };
+}
+
+function chunkToFeature(record: Record<string, unknown>): RailwayChunkFeature | null {
+  const geometry = record.geometry;
+  if (!isLineStringGeometry(geometry)) {
+    return null;
+  }
+
+  const id = record.id as number | string | undefined;
+  const segmentId = record.segment_id as number | string | undefined;
+  if (id === undefined || segmentId === undefined) {
+    return null;
+  }
+
+  const properties: RailwayChunkProperties = {
+    id,
+    segment_id: segmentId,
+    chunk_index: asNullableNumber(record.chunk_index) ?? 0,
+    start_offset_m: asNullableNumber(record.start_offset_m) ?? 0,
+    end_offset_m: asNullableNumber(record.end_offset_m) ?? 0,
+    length_m: asNullableNumber(record.length_m) ?? 0
   };
 
   return { type: "Feature", id, geometry, properties };

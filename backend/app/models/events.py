@@ -45,7 +45,7 @@ class RailwayEvent(TimestampMixin, Base):
     start_offset: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     end_offset: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     geometry: Mapped[Any] = mapped_column(
-        Geometry(geometry_type="LINESTRING", srid=4326, spatial_index=True),
+        Geometry(geometry_type="GEOMETRY", srid=4326, spatial_index=True),
         nullable=False,
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)

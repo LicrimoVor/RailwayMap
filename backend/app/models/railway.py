@@ -52,6 +52,35 @@ class RailwaySegment(TimestampMixin, Base):
         back_populates="segment",
         cascade="all, delete-orphan",
     )
+    chunks: Mapped[list[RailwaySegmentChunk]] = relationship(
+        back_populates="segment",
+        cascade="all, delete-orphan",
+    )
+
+
+class RailwaySegmentChunk(Base):
+    __tablename__ = "railway_segment_chunks"
+    __table_args__ = (
+        UniqueConstraint("segment_id", "chunk_index", name="uq_railway_segment_chunks_segment_index"),
+        Index("ix_railway_segment_chunks_segment_offsets", "segment_id", "start_offset_m", "end_offset_m"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    segment_id: Mapped[int] = mapped_column(
+        ForeignKey("railway_segments.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    start_offset_m: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    end_offset_m: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    length_m: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    geometry: Mapped[Any] = mapped_column(
+        Geometry(geometry_type="LINESTRING", srid=4326, spatial_index=True),
+        nullable=False,
+    )
+
+    segment: Mapped[RailwaySegment] = relationship(back_populates="chunks")
 
 
 class Station(Base):

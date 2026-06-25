@@ -16,6 +16,16 @@ export type RailwaySegmentProperties = {
   length_m?: number | string | null;
 };
 
+export type RailwayChunkProperties = {
+  id: number | string;
+  segment_id: number | string;
+  chunk_index: number;
+  start_offset_m: number | string;
+  end_offset_m: number | string;
+  length_m: number | string;
+  geometry?: LineStringGeometry;
+};
+
 export type StationProperties = {
   id: number | string;
   osm_id?: number | null;
@@ -24,9 +34,11 @@ export type StationProperties = {
 };
 
 export type RailwayFeature = Feature<LineStringGeometry, RailwaySegmentProperties>;
+export type RailwayChunkFeature = Feature<LineStringGeometry, RailwayChunkProperties>;
 export type StationFeature = Feature<PointGeometry, StationProperties>;
 
 export type RailwayFeatureCollection = FeatureCollection<RailwayFeature>;
+export type RailwayChunkFeatureCollection = FeatureCollection<RailwayChunkFeature>;
 export type StationFeatureCollection = FeatureCollection<StationFeature>;
 
 export type RailwaySummary = {
@@ -37,6 +49,7 @@ export type RailwaySummary = {
 
 export type RailwayData = {
   segments: RailwayFeatureCollection;
+  chunks: RailwayChunkFeatureCollection;
   stations: StationFeatureCollection;
   summary: RailwaySummary;
 };

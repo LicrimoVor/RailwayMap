@@ -105,6 +105,22 @@ const demoStations: StationFeatureCollection = {
 
 export const demoRailwayData: RailwayData = {
   segments: demoSegments,
+  chunks: {
+    type: "FeatureCollection",
+    features: demoSegments.features.map((feature) => ({
+      type: "Feature",
+      id: `demo-${feature.id}`,
+      geometry: feature.geometry,
+      properties: {
+        id: `demo-${feature.id}`,
+        segment_id: feature.properties.id,
+        chunk_index: 0,
+        start_offset_m: 0,
+        end_offset_m: feature.properties.length_m ?? 0,
+        length_m: feature.properties.length_m ?? 0
+      }
+    }))
+  },
   stations: demoStations,
   summary: buildRailwaySummary(demoSegments, demoStations)
 };

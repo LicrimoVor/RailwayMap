@@ -1,12 +1,24 @@
-import { Database, RefreshCw, TrainFront } from "lucide-react";
+import { Database, PanelLeftOpen, PanelRightOpen, RefreshCw, TrainFront } from "lucide-react";
 
 type TopBarProps = {
   isFallback: boolean;
   isLoading: boolean;
+  leftPanelOpen: boolean;
+  rightPanelOpen: boolean;
+  onOpenLeftPanel: () => void;
+  onOpenRightPanel: () => void;
   onRefresh: () => void;
 };
 
-export function TopBar({ isFallback, isLoading, onRefresh }: TopBarProps) {
+export function TopBar({
+  isFallback,
+  isLoading,
+  leftPanelOpen,
+  rightPanelOpen,
+  onOpenLeftPanel,
+  onOpenRightPanel,
+  onRefresh
+}: TopBarProps) {
   return (
     <header className="pointer-events-auto flex min-h-14 w-full items-center justify-between gap-3 rounded-lg border border-neutral-200 bg-white/95 px-4 shadow-panel backdrop-blur">
       <div className="flex min-w-0 items-center gap-3">
@@ -20,6 +32,26 @@ export function TopBar({ isFallback, isLoading, onRefresh }: TopBarProps) {
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          aria-label="Open layers panel"
+          onClick={onOpenLeftPanel}
+          disabled={leftPanelOpen}
+          className="inline-flex items-center gap-2 rounded border border-neutral-200 p-2 text-sm text-neutral-800 hover:bg-neutral-100 disabled:cursor-default disabled:opacity-40 sm:px-3"
+        >
+          <PanelLeftOpen size={15} />
+          <span className="hidden sm:inline">Layers</span>
+        </button>
+        <button
+          type="button"
+          aria-label="Open details panel"
+          onClick={onOpenRightPanel}
+          disabled={rightPanelOpen}
+          className="inline-flex items-center gap-2 rounded border border-neutral-200 p-2 text-sm text-neutral-800 hover:bg-neutral-100 disabled:cursor-default disabled:opacity-40 sm:px-3"
+        >
+          <PanelRightOpen size={15} />
+          <span className="hidden sm:inline">Details</span>
+        </button>
         <span
           className={`hidden items-center gap-1 rounded px-2 py-1 text-xs md:flex ${
             isFallback ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900"

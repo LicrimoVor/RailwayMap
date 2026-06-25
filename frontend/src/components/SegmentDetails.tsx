@@ -1,13 +1,17 @@
-import { X } from "lucide-react";
-import type { RailwaySegmentProperties } from "../types/railway";
+import { PanelRightClose, X } from "lucide-react";
+import type { RailwayChunkProperties, RailwaySegmentProperties } from "../types/railway";
 import { displayValue, formatLength } from "../features/map/utils";
 
 type SegmentDetailsProps = {
   segment: RailwaySegmentProperties | null;
+  selectedChunks: RailwayChunkProperties[];
+  onCollapse: () => void;
   onClose: () => void;
 };
 
-export function SegmentDetails({ segment, onClose }: SegmentDetailsProps) {
+export function SegmentDetails({ segment, selectedChunks, onCollapse, onClose }: SegmentDetailsProps) {
+  const selectedLength = selectedChunks.reduce((total, chunk) => total + Number(chunk.length_m || 0), 0);
+
   return (
     <aside className="pointer-events-auto flex max-h-full w-full flex-col rounded-lg border border-neutral-200 bg-white/95 shadow-panel backdrop-blur md:w-96">
       <header className="flex items-start justify-between border-b border-neutral-200 p-4">
@@ -16,15 +20,30 @@ export function SegmentDetails({ segment, onClose }: SegmentDetailsProps) {
           <h2 className="mt-1 text-lg font-semibold text-neutral-950">
             {segment?.name ?? "No railway selected"}
           </h2>
+          {selectedChunks.length > 0 && (
+            <p className="mt-1 text-xs text-blue-700">
+              {selectedChunks.length} chunks selected, {formatLength(selectedLength)}
+            </p>
+          )}
         </div>
-        <button
-          type="button"
-          aria-label="Close segment details"
-          onClick={onClose}
-          className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
-        >
-          <X size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            aria-label="Collapse details panel"
+            onClick={onCollapse}
+            className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+          >
+            <PanelRightClose size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label="Clear selected segment"
+            onClick={onClose}
+            className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+          >
+            <X size={18} />
+          </button>
+        </div>
       </header>
 
       {segment ? (
@@ -41,6 +60,14 @@ export function SegmentDetails({ segment, onClose }: SegmentDetailsProps) {
           </dl>
 
           <section className="mt-5 space-y-3">
+            <EmptyBlock
+              title="Selected chunks"
+              value={
+                selectedChunks.length > 0
+                  ? "Blue highlighted 100 m chunks will be used as event geometry."
+                  : "Click railway chunks on the map to build an arbitrary selection."
+              }
+            />
             <EmptyBlock title="Events" value="No linked events loaded" />
             <EmptyBlock title="Defects" value="No defects loaded" />
             <EmptyBlock title="Parameters" value="No extra parameters loaded" />

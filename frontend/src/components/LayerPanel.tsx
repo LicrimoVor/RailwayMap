@@ -1,10 +1,12 @@
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { PanelLeftClose } from "lucide-react";
 import type { LayerKey } from "../store/mapStore";
 import type { RailwaySummary } from "../types/railway";
 
 type LayerPanelProps = {
   visibleLayers: Record<LayerKey, boolean>;
   onToggleLayer: (key: LayerKey) => void;
+  onCollapse: () => void;
   summary: RailwaySummary;
 };
 
@@ -12,21 +14,31 @@ const layerRows: Array<{ key: LayerKey; label: string; available: boolean }> = [
   { key: "railways", label: "Railways", available: true },
   { key: "stations", label: "Stations", available: true },
   { key: "electrification", label: "Electrification", available: true },
-  { key: "defects", label: "Defects", available: false },
+  { key: "defects", label: "Defects", available: true },
   { key: "speedLimits", label: "Speed limits", available: false },
-  { key: "events", label: "User events", available: false },
+  { key: "events", label: "User events", available: true },
   { key: "relief", label: "Relief", available: false },
   { key: "heatmaps", label: "Heatmaps", available: false }
 ];
 
-export function LayerPanel({ visibleLayers, onToggleLayer, summary }: LayerPanelProps) {
+export function LayerPanel({ visibleLayers, onToggleLayer, onCollapse, summary }: LayerPanelProps) {
   return (
     <aside className="pointer-events-auto w-full rounded-lg border border-neutral-200 bg-white/95 p-3 shadow-panel backdrop-blur md:w-80">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-700">Layers</h2>
-        <span className="rounded bg-neutral-100 px-2 py-1 text-xs text-neutral-700">
-          {summary.segmentCount} segments
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded bg-neutral-100 px-2 py-1 text-xs text-neutral-700">
+            {summary.segmentCount} segments
+          </span>
+          <button
+            type="button"
+            aria-label="Collapse layers panel"
+            onClick={onCollapse}
+            className="rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+          >
+            <PanelLeftClose size={17} />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-1">

@@ -1,6 +1,6 @@
 from app.models.base import Base
 from app.models.events import Defect, EventType, Layer, RailwayEvent, SegmentParameter
-from app.models.railway import City, KilometerPoint, RailwaySegment, Station
+from app.models.railway import City, KilometerPoint, RailwaySegment, RailwaySegmentChunk, Station
 
 __all__ = [
     "Base",
@@ -11,6 +11,7 @@ __all__ = [
     "Layer",
     "RailwayEvent",
     "RailwaySegment",
+    "RailwaySegmentChunk",
     "SegmentParameter",
     "Station",
 ]

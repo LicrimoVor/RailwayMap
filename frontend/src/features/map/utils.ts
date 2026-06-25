@@ -1,5 +1,7 @@
 import type {
   RailwayFeature,
+  RailwayChunkFeature,
+  RailwayChunkFeatureCollection,
   RailwayFeatureCollection,
   RailwaySegmentProperties,
   RailwaySummary,
@@ -22,6 +24,14 @@ export function buildRailwaySummary(
     stationCount: stations.features.length,
     electrification: Array.from(counts, ([name, count]) => ({ name, count }))
   };
+}
+
+export function findChunkFeaturesByIds(
+  chunks: RailwayChunkFeatureCollection,
+  ids: Array<string | number>
+): RailwayChunkFeature[] {
+  const selectedIds = new Set(ids.map(String));
+  return chunks.features.filter((feature) => selectedIds.has(String(feature.properties.id)));
 }
 
 export function findFeatureById(

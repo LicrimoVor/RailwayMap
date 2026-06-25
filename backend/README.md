@@ -57,3 +57,35 @@ Imported OSM objects:
 
 Use `--dry-run` to validate parsing and database writes without committing.
 Use `--reader pyrosm` only for small extracts or compatibility checks.
+
+## API
+
+Map reads:
+
+- `GET /api/segments`
+- `GET /api/segments/{segment_id}`
+- `GET /api/stations`
+- `GET /api/events`
+- `GET /api/defects`
+
+Admin writes:
+
+- `POST /api/events`
+- `POST /api/defects`
+- `POST /api/segment-parameters`
+- `POST /api/event-types`
+- `POST /api/layers`
+
+`/api/segments`, `/api/stations`, `/api/events`, and `/api/defects` return
+GeoJSON feature collections for direct use by MapLibre.
+
+Fine-grained selection:
+
+- `GET /api/segment-chunks`
+- `POST /api/segment-chunks/rebuild`
+
+Build 100 meter chunks after OSM import:
+
+```powershell
+python utilities/rebuild_segment_chunks.py --chunk-length-m 100
+```

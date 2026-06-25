@@ -5,6 +5,11 @@ export type LineStringGeometry = {
   coordinates: Position[];
 };
 
+export type MultiLineStringGeometry = {
+  type: "MultiLineString";
+  coordinates: Position[][];
+};
+
 export type PointGeometry = {
   type: "Point";
   coordinates: Position;

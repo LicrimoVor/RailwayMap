@@ -34,3 +34,12 @@ Useful flags:
 .\.venv\Scripts\python.exe utilities\import_osm.py data\russia-latest.osm.pbf --batch-size 500
 .\.venv\Scripts\python.exe utilities\import_osm.py data\russia-latest.osm.pbf --reader pyrosm
 ```
+
+## Rebuild selectable railway chunks
+
+After importing railway segments, build 100 meter chunks for fine-grained map
+selection:
+
+```powershell
+.\.venv\Scripts\python.exe utilities\rebuild_segment_chunks.py --chunk-length-m 100
+```
