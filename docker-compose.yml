@@ -1,0 +1,54 @@
+volumes:
+    postgres_data:
+
+services:
+    postgres:
+        image: postgis/postgis:17-3.5
+        environment:
+            POSTGRES_DB: interactive_map
+            POSTGRES_USER: interactive_map
+            POSTGRES_PASSWORD: interactive_map
+        ports:
+            - "5432:5432"
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test:
+                [
+                    "CMD-SHELL",
+                    "pg_isready -U interactive_map -d interactive_map",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+#     redis:
+#         image: redis:7-alpine
+#         ports:
+#             - "6379:6379"
+
+#     backend:
+#         build:
+#             context: ./backend
+#         environment:
+#             DATABASE_URL: postgresql+psycopg://interactive_map:interactive_map@postgres:5432/interactive_map
+#             REDIS_URL: redis://redis:6379/0
+#         ports:
+#             - "8000:8000"
+#         depends_on:
+#             postgres:
+#                 condition: service_healthy
+#             redis:
+#                 condition: service_started
+
+#     frontend:
+#         build:
+#             context: ./frontend
+#             args:
+#                 VITE_API_BASE_URL: /api
+#         ports:
+#             - "3000:80"
+#         depends_on:
+#             backend:
+#                 condition: service_started
+

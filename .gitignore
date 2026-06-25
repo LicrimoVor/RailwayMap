@@ -1,0 +1,11 @@
+**/*.db
+**/*.pbf
+
+__pycache__/
+.venv/
+dist/
+node_modules/
+interactive_railway_map_backend.egg-info/
+.pytest_cache/
+
+.env
