@@ -11,11 +11,11 @@ from shapely.geometry import Point, shape
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.api.geojson import feature, feature_collection, json_value, model_properties
 from app.core.database import get_session
+from app.libs.geojson import feature, feature_collection, json_value, model_properties
 from app.models.events import Defect, EventType, Layer, RailwayEvent, SegmentParameter
 from app.models.railway import RailwaySegment
-from app.services.chunks import rebuild_segment_chunks
+from app.services.chunks import rebuild_segment_chunks, rebuild_segment_sections_10km
 
 router = APIRouter(tags=["admin"])
 
@@ -69,6 +69,11 @@ class LayerPayload(BaseModel):
 
 class RebuildChunksPayload(BaseModel):
     chunk_length_m: float = Field(default=100.0, gt=0, le=10_000)
+    segment_ids: list[int] | None = None
+
+
+class RebuildSections10kmPayload(BaseModel):
+    section_length_m: float = Field(default=10_000.0, gt=0, le=100_000)
     segment_ids: list[int] | None = None
 
 
@@ -224,6 +229,20 @@ def rebuild_chunks(
     )
     session.commit()
     return {"created": created, "chunk_length_m": payload.chunk_length_m}
+
+
+@router.post("/segment-sections-10km/rebuild")
+def rebuild_sections_10km(
+    payload: RebuildSections10kmPayload,
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    created = rebuild_segment_sections_10km(
+        session,
+        section_length_m=payload.section_length_m,
+        segment_ids=payload.segment_ids,
+    )
+    session.commit()
+    return {"created": created, "section_length_m": payload.section_length_m}
 
 
 def require_segment(session: Session, segment_id: int) -> RailwaySegment:

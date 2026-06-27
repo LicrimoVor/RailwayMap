@@ -26,31 +26,31 @@ export function TopBar({
           <TrainFront size={19} />
         </span>
         <div className="min-w-0">
-          <h1 className="truncate text-base font-semibold text-neutral-950">Interactive Railway Map</h1>
-          <p className="truncate text-xs text-neutral-600">Russia railway graph and linked domain layers</p>
+          <h1 className="truncate text-base font-semibold text-neutral-950">Карта железных дорог</h1>
+          <p className="truncate text-xs text-neutral-600">Железные дороги России и связанные объекты</p>
         </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
         <button
           type="button"
-          aria-label="Open layers panel"
+          aria-label="Открыть панель слоев"
           onClick={onOpenLeftPanel}
           disabled={leftPanelOpen}
           className="inline-flex items-center gap-2 rounded border border-neutral-200 p-2 text-sm text-neutral-800 hover:bg-neutral-100 disabled:cursor-default disabled:opacity-40 sm:px-3"
         >
           <PanelLeftOpen size={15} />
-          <span className="hidden sm:inline">Layers</span>
+          <span className="hidden sm:inline">Слои</span>
         </button>
         <button
           type="button"
-          aria-label="Open details panel"
+          aria-label="Открыть панель деталей"
           onClick={onOpenRightPanel}
           disabled={rightPanelOpen}
           className="inline-flex items-center gap-2 rounded border border-neutral-200 p-2 text-sm text-neutral-800 hover:bg-neutral-100 disabled:cursor-default disabled:opacity-40 sm:px-3"
         >
           <PanelRightOpen size={15} />
-          <span className="hidden sm:inline">Details</span>
+          <span className="hidden sm:inline">Детали</span>
         </button>
         <span
           className={`hidden items-center gap-1 rounded px-2 py-1 text-xs md:flex ${
@@ -58,7 +58,7 @@ export function TopBar({
           }`}
         >
           <Database size={13} />
-          {isFallback ? "Demo data" : "API data"}
+          {isFallback ? "Демо-данные" : "Данные API"}
         </span>
         <button
           type="button"
@@ -67,7 +67,7 @@ export function TopBar({
           disabled={isLoading}
         >
           <RefreshCw size={15} className={isLoading ? "animate-spin" : ""} />
-          Refresh
+          Обновить
         </button>
       </div>
     </header>

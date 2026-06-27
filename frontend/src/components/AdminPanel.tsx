@@ -36,8 +36,8 @@ export function AdminPanel({ segment, selectedChunks }: AdminPanelProps) {
     [segmentQuery.data?.eventTypes]
   );
 
-  const onSaved = async (label: string) => {
-    setMessage(`${label} saved`);
+  const onSaved = async (messageText: string) => {
+    setMessage(messageText);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["admin-map-data"] }),
       queryClient.invalidateQueries({ queryKey: ["segment-admin-data", segmentId] })
@@ -46,15 +46,15 @@ export function AdminPanel({ segment, selectedChunks }: AdminPanelProps) {
 
   const eventMutation = useMutation({
     mutationFn: createEvent,
-    onSuccess: () => void onSaved("Event")
+    onSuccess: () => void onSaved("Событие сохранено")
   });
   const defectMutation = useMutation({
     mutationFn: createDefect,
-    onSuccess: () => void onSaved("Defect")
+    onSuccess: () => void onSaved("Дефект сохранен")
   });
   const parameterMutation = useMutation({
     mutationFn: createSegmentParameter,
-    onSuccess: () => void onSaved("Parameter")
+    onSuccess: () => void onSaved("Параметр сохранен")
   });
 
   const isBusy = eventMutation.isPending || defectMutation.isPending || parameterMutation.isPending;
@@ -65,33 +65,35 @@ export function AdminPanel({ segment, selectedChunks }: AdminPanelProps) {
       <header className="border-b border-neutral-200 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-wide text-neutral-500">Admin</p>
-            <h2 className="mt-1 text-base font-semibold text-neutral-950">Assign data to segment</h2>
+            <p className="text-xs uppercase tracking-wide text-neutral-500">Администрирование</p>
+            <h2 className="mt-1 text-base font-semibold text-neutral-950">Данные для участка</h2>
             {selectedChunks.length > 0 && (
-              <p className="mt-1 text-xs text-blue-700">{selectedChunks.length} chunks selected</p>
+              <p className="mt-1 text-xs text-blue-700">
+                Выбрано 100 м участков: {selectedChunks.length.toLocaleString("ru-RU")}
+              </p>
             )}
           </div>
           <span className="rounded bg-neutral-100 px-2 py-1 text-xs text-neutral-700">
-            {isSegmentSelected ? `#${segmentId}` : "No selection"}
+            {isSegmentSelected ? `#${segmentId}` : "Нет выбора"}
           </span>
         </div>
       </header>
 
       <div className="grid grid-cols-3 border-b border-neutral-200 text-sm">
         <TabButton active={activeTab === "event"} onClick={() => setActiveTab("event")}>
-          Event
+          Событие
         </TabButton>
         <TabButton active={activeTab === "defect"} onClick={() => setActiveTab("defect")}>
-          Defect
+          Дефект
         </TabButton>
         <TabButton active={activeTab === "parameter"} onClick={() => setActiveTab("parameter")}>
-          Parameter
+          Параметр
         </TabButton>
       </div>
 
       <div className="p-4">
         {!isSegmentSelected ? (
-          <p className="text-sm text-neutral-600">Select railway chunks on the map first.</p>
+          <p className="text-sm text-neutral-600">Сначала выберите участок железной дороги на карте.</p>
         ) : (
           <>
             {activeTab === "event" && (
@@ -121,9 +123,9 @@ export function AdminPanel({ segment, selectedChunks }: AdminPanelProps) {
             )}
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
-              <Counter label="Events" value={segmentQuery.data?.events.features.length ?? 0} />
-              <Counter label="Defects" value={segmentQuery.data?.defects.features.length ?? 0} />
-              <Counter label="Params" value={segmentQuery.data?.parameters.length ?? 0} />
+              <Counter label="События" value={segmentQuery.data?.events.features.length ?? 0} />
+              <Counter label="Дефекты" value={segmentQuery.data?.defects.features.length ?? 0} />
+              <Counter label="Параметры" value={segmentQuery.data?.parameters.length ?? 0} />
             </div>
           </>
         )}
@@ -137,7 +139,7 @@ export function AdminPanel({ segment, selectedChunks }: AdminPanelProps) {
         {error && (
           <div className="mt-3 flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
             <AlertCircle size={16} />
-            API request failed
+            Запрос к API не выполнен
           </div>
         )}
       </div>
@@ -166,7 +168,7 @@ function EventForm({
   const [startPk, setStartPk] = useState("0");
   const [endKm, setEndKm] = useState("");
   const [endPk, setEndPk] = useState("");
-  const [severity, setSeverity] = useState("warning");
+  const [severity, setSeverity] = useState("предупреждение");
   const [description, setDescription] = useState("");
 
   return (
@@ -188,9 +190,9 @@ function EventForm({
       }}
     >
       <div className="grid grid-cols-[1fr_auto] gap-2">
-        <Input label="Type" value={name} onChange={setName} />
+        <Input label="Тип" value={name} onChange={setName} />
         <label className="block text-xs text-neutral-600">
-          Color
+          Цвет
           <input
             type="color"
             value={color}
@@ -200,14 +202,14 @@ function EventForm({
         </label>
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <Input label="Start km" value={startKm} onChange={setStartKm} type="number" />
-        <Input label="Start pk" value={startPk} onChange={setStartPk} type="number" />
-        <Input label="End km" value={endKm} onChange={setEndKm} type="number" />
-        <Input label="End pk" value={endPk} onChange={setEndPk} type="number" />
+        <Input label="Начало, км" value={startKm} onChange={setStartKm} type="number" />
+        <Input label="Начало, пикет" value={startPk} onChange={setStartPk} type="number" />
+        <Input label="Конец, км" value={endKm} onChange={setEndKm} type="number" />
+        <Input label="Конец, пикет" value={endPk} onChange={setEndPk} type="number" />
       </div>
-      <Input label="Severity" value={severity} onChange={setSeverity} />
-      <Textarea label="Description" value={description} onChange={setDescription} />
-      <Submit disabled={disabled}>Create event</Submit>
+      <Input label="Важность" value={severity} onChange={setSeverity} />
+      <Textarea label="Описание" value={description} onChange={setDescription} />
+      <Submit disabled={disabled}>Создать событие</Submit>
     </form>
   );
 }
@@ -223,10 +225,10 @@ function DefectForm({
   disabled: boolean;
   onSubmit: Parameters<typeof createDefect>[0] extends never ? never : (payload: Parameters<typeof createDefect>[0]) => void;
 }) {
-  const [type, setType] = useState("Track defect");
+  const [type, setType] = useState("Дефект пути");
   const [km, setKm] = useState("0");
   const [pk, setPk] = useState("0");
-  const [severity, setSeverity] = useState("critical");
+  const [severity, setSeverity] = useState("критический");
   const [description, setDescription] = useState("");
 
   return (
@@ -246,14 +248,14 @@ function DefectForm({
         });
       }}
     >
-      <Input label="Type" value={type} onChange={setType} />
+      <Input label="Тип" value={type} onChange={setType} />
       <div className="grid grid-cols-2 gap-2">
-        <Input label="Km" value={km} onChange={setKm} type="number" />
-        <Input label="Pk" value={pk} onChange={setPk} type="number" />
+        <Input label="Км" value={km} onChange={setKm} type="number" />
+        <Input label="Пикет" value={pk} onChange={setPk} type="number" />
       </div>
-      <Input label="Severity" value={severity} onChange={setSeverity} />
-      <Textarea label="Description" value={description} onChange={setDescription} />
-      <Submit disabled={disabled}>Create defect</Submit>
+      <Input label="Важность" value={severity} onChange={setSeverity} />
+      <Textarea label="Описание" value={description} onChange={setDescription} />
+      <Submit disabled={disabled}>Создать дефект</Submit>
     </form>
   );
 }
@@ -267,9 +269,9 @@ function ParameterForm({
   disabled: boolean;
   onSubmit: (payload: any) => void;
 }) {
-  const [name, setName] = useState("Speed limit");
+  const [name, setName] = useState("Ограничение скорости");
   const [value, setValue] = useState("80");
-  const [unit, setUnit] = useState("km/h");
+  const [unit, setUnit] = useState("км/ч");
 
   return (
     <form
@@ -284,12 +286,12 @@ function ParameterForm({
         });
       }}
     >
-      <Input label="Name" value={name} onChange={setName} />
+      <Input label="Название" value={name} onChange={setName} />
       <div className="grid grid-cols-2 gap-2">
-        <Input label="Value" value={value} onChange={setValue} />
-        <Input label="Unit" value={unit} onChange={setUnit} />
+        <Input label="Значение" value={value} onChange={setValue} />
+        <Input label="Единица" value={unit} onChange={setUnit} />
       </div>
-      <Submit disabled={disabled}>Create parameter</Submit>
+      <Submit disabled={disabled}>Создать параметр</Submit>
     </form>
   );
 }

@@ -11,28 +11,40 @@ import type {
   StationFeatureCollection,
   StationProperties
 } from "../types/railway";
-import { buildRailwaySummary } from "../features/map/utils";
+import { buildRailwaySummary } from "../libs/railway";
 
 type ApiCollection<T> = T[] | { items?: T[]; features?: T[]; type?: string };
 const PAGE_SIZE = 25_000;
 
 export async function fetchRailwayData(): Promise<RailwayData> {
-  const [segmentPayloads, stationPayloads] = await Promise.all([
-    fetchPagedCollections("/segments"),
+  const [sectionPayloads, stationPayloads] = await Promise.all([
+    fetchPagedCollections("/segment-sections-10km"),
     fetchPagedCollections("/stations")
   ]);
-  const chunkPayloads = await fetchPagedCollections("/segment-chunks");
 
-  const segments = mergeSegmentCollections(segmentPayloads.map(normalizeSegments));
-  const chunks = mergeChunkCollections(chunkPayloads.map(normalizeChunks));
+  const segments = mergeSegmentCollections(sectionPayloads.map(normalizeSegments));
   const stations = mergeStationCollections(stationPayloads.map(normalizeStations));
 
   return {
     segments,
-    chunks,
+    chunks: { type: "FeatureCollection", features: [] },
     stations,
     summary: buildRailwaySummary(segments, stations)
   };
+}
+
+export async function fetchSegmentChunksForSection(
+  section: RailwaySegmentProperties
+): Promise<RailwayChunkFeatureCollection> {
+  const response = await apiClient.get("/segment-chunks", {
+    params: {
+      segment_id: section.id,
+      start_offset_m: section.section_start_offset_m,
+      end_offset_m: section.section_end_offset_m,
+      limit: 5_000
+    }
+  });
+  return normalizeChunks(response.data);
 }
 
 async function fetchPagedCollections(endpoint: string): Promise<Array<ApiCollection<Record<string, unknown>>>> {
@@ -65,13 +77,6 @@ function collectionSize(payload: ApiCollection<Record<string, unknown>>): number
 }
 
 function mergeSegmentCollections(collections: RailwayFeatureCollection[]): RailwayFeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: collections.flatMap((collection) => collection.features)
-  };
-}
-
-function mergeChunkCollections(collections: RailwayChunkFeatureCollection[]): RailwayChunkFeatureCollection {
   return {
     type: "FeatureCollection",
     features: collections.flatMap((collection) => collection.features)
@@ -138,6 +143,11 @@ function segmentToFeature(record: Record<string, unknown>): RailwayFeature | nul
 
   const properties: RailwaySegmentProperties = {
     id,
+    section_id: asNullableNumber(record.section_id),
+    section_index: asNullableNumber(record.section_index),
+    section_start_offset_m: asNullableNumber(record.section_start_offset_m),
+    section_end_offset_m: asNullableNumber(record.section_end_offset_m),
+    section_length_m: asNullableNumber(record.section_length_m),
     osm_id: asNullableNumber(record.osm_id),
     name: asNullableString(record.name),
     branch: asNullableString(record.branch),

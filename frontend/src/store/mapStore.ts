@@ -6,10 +6,7 @@ export type LayerKey =
   | "stations"
   | "electrification"
   | "defects"
-  | "speedLimits"
-  | "events"
-  | "relief"
-  | "heatmaps";
+  | "events";
 
 type MapState = {
   visibleLayers: Record<LayerKey, boolean>;
@@ -32,10 +29,7 @@ export const useMapStore = create<MapState>((set) => ({
     stations: true,
     electrification: true,
     defects: true,
-    speedLimits: false,
-    events: true,
-    relief: false,
-    heatmaps: false
+    events: true
   },
   selectedSegment: null,
   selectedChunks: [],

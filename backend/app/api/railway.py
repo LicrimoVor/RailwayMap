@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from app.api.geojson import feature, feature_collection, model_properties
 from app.core.database import get_session
-from app.models.railway import RailwaySegment, RailwaySegmentChunk, Station
+from app.libs.geojson import feature, feature_collection, model_properties
+from app.models.railway import RailwaySegment, RailwaySegmentChunk, RailwaySegmentSection10km, Station
 
 router = APIRouter(tags=["railway"])
 
@@ -47,6 +47,15 @@ CHUNK_FIELDS = (
     "length_m",
 )
 
+SECTION_10KM_FIELDS = (
+    "id",
+    "segment_id",
+    "section_index",
+    "start_offset_m",
+    "end_offset_m",
+    "length_m",
+)
+
 
 @router.get("/segments")
 def list_segments(
@@ -70,6 +79,8 @@ def get_segment(segment_id: int, session: Session = Depends(get_session)) -> dic
 @router.get("/segment-chunks")
 def list_segment_chunks(
     segment_id: int | None = Query(default=None),
+    start_offset_m: float | None = Query(default=None, ge=0),
+    end_offset_m: float | None = Query(default=None, ge=0),
     limit: int = Query(default=50_000, ge=1, le=100_000),
     offset: int = Query(default=0, ge=0),
     session: Session = Depends(get_session),
@@ -80,9 +91,35 @@ def list_segment_chunks(
     )
     if segment_id is not None:
         statement = statement.where(RailwaySegmentChunk.segment_id == segment_id)
+    if start_offset_m is not None:
+        statement = statement.where(RailwaySegmentChunk.end_offset_m > start_offset_m)
+    if end_offset_m is not None:
+        statement = statement.where(RailwaySegmentChunk.start_offset_m < end_offset_m)
 
     chunks = session.scalars(statement.offset(offset).limit(limit)).all()
     return feature_collection([chunk_feature(chunk) for chunk in chunks])
+
+
+@router.get("/segment-sections-10km")
+def list_segment_sections_10km(
+    segment_id: int | None = Query(default=None),
+    limit: int = Query(default=50_000, ge=1, le=100_000),
+    offset: int = Query(default=0, ge=0),
+    session: Session = Depends(get_session),
+) -> dict[str, object]:
+    statement = (
+        select(RailwaySegmentSection10km)
+        .options(selectinload(RailwaySegmentSection10km.segment))
+        .order_by(
+            RailwaySegmentSection10km.segment_id,
+            RailwaySegmentSection10km.section_index,
+        )
+    )
+    if segment_id is not None:
+        statement = statement.where(RailwaySegmentSection10km.segment_id == segment_id)
+
+    sections = session.scalars(statement.offset(offset).limit(limit)).all()
+    return feature_collection([section_10km_feature(section) for section in sections])
 
 
 @router.get("/stations")
@@ -109,3 +146,18 @@ def station_feature(station: Station) -> dict[str, object]:
 def chunk_feature(chunk: RailwaySegmentChunk) -> dict[str, object]:
     properties = model_properties(chunk, CHUNK_FIELDS)
     return feature(chunk.geometry, properties, feature_id=chunk.id)
+
+
+def section_10km_feature(section: RailwaySegmentSection10km) -> dict[str, object]:
+    segment_properties = model_properties(section.segment, SEGMENT_FIELDS)
+    section_properties = model_properties(section, SECTION_10KM_FIELDS)
+    properties = {
+        **segment_properties,
+        "id": section.segment_id,
+        "section_id": section.id,
+        "section_index": section.section_index,
+        "section_start_offset_m": section_properties["start_offset_m"],
+        "section_end_offset_m": section_properties["end_offset_m"],
+        "section_length_m": section_properties["length_m"],
+    }
+    return feature(section.geometry, properties, feature_id=section.id)

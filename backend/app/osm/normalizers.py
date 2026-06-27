@@ -7,7 +7,7 @@ from shapely.geometry import LineString, MultiLineString, Point
 from shapely.geometry.base import BaseGeometry
 from shapely.ops import linemerge
 
-from app.gis.measurements import linestring_length_m
+from app.libs.measurements import linestring_length_m
 from app.osm.features import OSMFeature
 
 

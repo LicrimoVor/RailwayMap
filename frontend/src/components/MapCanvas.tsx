@@ -3,6 +3,7 @@ import maplibregl, { type GeoJSONSource, type Map as MapLibreMap } from "maplibr
 import { resolveBaseMapStyle } from "../map/baseStyle";
 import {
   RAILWAY_HIT_LAYER_ID,
+  RAILWAY_CHUNK_GUIDE_LAYER_ID,
   RAILWAY_CHUNK_HIT_LAYER_ID,
   RAILWAY_CHUNK_SOURCE_ID,
   RAILWAY_LINE_LAYER_ID,
@@ -26,7 +27,12 @@ import type {
   RailwaySegmentProperties
 } from "../types/railway";
 import type { LayerKey } from "../store/mapStore";
-import { findChunkFeaturesByIds, findFeatureById, formatLength } from "../features/map/utils";
+import {
+  findFeatureById,
+  findFeatureBySelection,
+  formatLength,
+  selectedChunkPropertiesToFeatures
+} from "../libs/railway";
 import type { AdminMapData } from "../types/admin";
 
 type MapCanvasProps = {
@@ -60,24 +66,32 @@ export function MapCanvas({
   const popupRef = useRef<maplibregl.Popup | null>(null);
 
   const selectedFeature = useMemo(
-    () => findFeatureById(data.segments, selectedSegment?.id ?? null),
-    [data.segments, selectedSegment?.id]
+    () => findFeatureBySelection(data.segments, selectedSegment),
+    [data.segments, selectedSegment]
   );
   const selectedChunkFeatures = useMemo(
-    () => findChunkFeaturesByIds(data.chunks, selectedChunks.map((chunk) => chunk.id)),
-    [data.chunks, selectedChunks]
+    () => selectedChunkPropertiesToFeatures(selectedChunks),
+    [selectedChunks]
   );
   const latestStateRef = useRef({
     data,
     adminData,
     selectedFeature,
     selectedChunkFeatures,
+    selectedChunks,
     visibleLayers
   });
 
   useEffect(() => {
-    latestStateRef.current = { data, adminData, selectedFeature, selectedChunkFeatures, visibleLayers };
-  }, [data, adminData, selectedFeature, selectedChunkFeatures, visibleLayers]);
+    latestStateRef.current = {
+      data,
+      adminData,
+      selectedFeature,
+      selectedChunkFeatures,
+      selectedChunks,
+      visibleLayers
+    };
+  }, [data, adminData, selectedFeature, selectedChunkFeatures, selectedChunks, visibleLayers]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) {
@@ -112,13 +126,9 @@ export function MapCanvas({
       map.on("load", () => {
         const latest = latestStateRef.current;
         ensureRailwayLayers(map);
-        updateRailwayData(
-          map,
-          latest.data,
-          latest.adminData,
-          latest.selectedFeature,
-          latest.selectedChunkFeatures
-        );
+        updateRailwaySources(map, latest.data);
+        updateAdminSources(map, latest.adminData);
+        updateSelectionSources(map, latest.selectedFeature, latest.selectedChunkFeatures);
         updateLayerVisibility(map, latest.visibleLayers);
       });
 
@@ -128,10 +138,17 @@ export function MapCanvas({
         });
         const chunkFeature = chunkFeatures[0] as unknown as RailwayChunkFeature | undefined;
         if (chunkFeature) {
-          const parentSegment = findFeatureById(
-            latestStateRef.current.data.segments,
-            chunkFeature.properties.segment_id
-          );
+          const parentSegment =
+            latestStateRef.current.selectedFeature ??
+            findFeatureById(
+              latestStateRef.current.data.segments,
+              chunkFeature.properties.segment_id
+            );
+          const nextChunks = toggleChunk(latestStateRef.current.selectedChunks, {
+            ...chunkFeature.properties,
+            geometry: chunkFeature.geometry
+          });
+          updateSelectedChunksSource(map, selectedChunkPropertiesToFeatures(nextChunks));
           onSelectSegment(parentSegment?.properties ?? null);
           onToggleChunk({ ...chunkFeature.properties, geometry: chunkFeature.geometry });
           return;
@@ -139,7 +156,11 @@ export function MapCanvas({
 
         const features = map.queryRenderedFeatures(event.point, { layers: [RAILWAY_HIT_LAYER_ID] });
         const railwayFeature = features[0] as unknown as RailwayFeature | undefined;
-        onClearChunks();
+        updateSelectedRailwaySource(map, railwayFeature ?? null);
+        if (!railwayFeature) {
+          onClearChunks();
+          updateSelectedChunksSource(map, []);
+        }
         onSelectSegment(railwayFeature?.properties ?? null);
       });
 
@@ -155,9 +176,9 @@ export function MapCanvas({
         popupRef.current
           .setLngLat(event.lngLat)
           .setHTML(
-            `<strong>${feature.properties.name ?? "Railway segment"}</strong><br/>` +
-              `Branch: ${feature.properties.branch ?? "n/a"}<br/>` +
-              `Length: ${formatLength(feature.properties.length_m)}`
+            `<strong>${feature.properties.name ?? "Участок железной дороги"}</strong><br/>` +
+              `Ветка: ${feature.properties.branch ?? "н/д"}<br/>` +
+              `Длина: ${formatLength(feature.properties.length_m)}`
           )
           .addTo(map);
       });
@@ -182,8 +203,35 @@ export function MapCanvas({
       return;
     }
     ensureRailwayLayers(map);
-    updateRailwayData(map, data, adminData, selectedFeature, selectedChunkFeatures);
-  }, [data, adminData, selectedFeature, selectedChunkFeatures]);
+    updateBaseRailwaySource(map, data);
+  }, [data.segments, data.stations]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) {
+      return;
+    }
+    ensureRailwayLayers(map);
+    updateChunkSource(map, data);
+  }, [data.chunks]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) {
+      return;
+    }
+    ensureRailwayLayers(map);
+    updateAdminSources(map, adminData);
+  }, [adminData]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.isStyleLoaded()) {
+      return;
+    }
+    ensureRailwayLayers(map);
+    updateSelectionSources(map, selectedFeature, selectedChunkFeatures);
+  }, [selectedFeature, selectedChunkFeatures]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -288,6 +336,23 @@ function ensureRailwayLayers(map: MapLibreMap) {
     });
   }
 
+  if (!map.getLayer(RAILWAY_CHUNK_GUIDE_LAYER_ID)) {
+    map.addLayer({
+      id: RAILWAY_CHUNK_GUIDE_LAYER_ID,
+      type: "line",
+      source: RAILWAY_CHUNK_SOURCE_ID,
+      layout: {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      paint: {
+        "line-color": "#2563eb",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 3, 2, 8, 4],
+        "line-opacity": 0.34
+      }
+    });
+  }
+
   if (!map.getLayer(RAILWAY_SELECTED_CHUNKS_LAYER_ID)) {
     map.addLayer({
       id: RAILWAY_SELECTED_CHUNKS_LAYER_ID,
@@ -385,35 +450,51 @@ function ensureRailwayLayers(map: MapLibreMap) {
   }
 }
 
-function updateRailwayData(
-  map: MapLibreMap,
-  data: RailwayData,
-  adminData: AdminMapData,
-  selectedFeature: RailwayFeature | null,
-  selectedChunkFeatures: RailwayChunkFeature[]
-) {
+function updateRailwaySources(map: MapLibreMap, data: RailwayData) {
+  updateBaseRailwaySource(map, data);
+  updateChunkSource(map, data);
+}
+
+function updateBaseRailwaySource(map: MapLibreMap, data: RailwayData) {
   const railwaySource = map.getSource(RAILWAY_SOURCE_ID) as GeoJSONSource;
   railwaySource.setData(data.segments as unknown as GeoJSON.FeatureCollection);
 
-  const chunkSource = map.getSource(RAILWAY_CHUNK_SOURCE_ID) as GeoJSONSource;
-  chunkSource.setData(data.chunks as unknown as GeoJSON.FeatureCollection);
-
   const stationSource = map.getSource(STATION_SOURCE_ID) as GeoJSONSource;
   stationSource.setData(data.stations as unknown as GeoJSON.FeatureCollection);
+}
 
+function updateChunkSource(map: MapLibreMap, data: RailwayData) {
+  const chunkSource = map.getSource(RAILWAY_CHUNK_SOURCE_ID) as GeoJSONSource;
+  chunkSource.setData(data.chunks as unknown as GeoJSON.FeatureCollection);
+}
+
+function updateSelectionSources(
+  map: MapLibreMap,
+  selectedFeature: RailwayFeature | null,
+  selectedChunkFeatures: RailwayChunkFeature[]
+) {
+  updateSelectedRailwaySource(map, selectedFeature);
+  updateSelectedChunksSource(map, selectedChunkFeatures);
+}
+
+function updateSelectedRailwaySource(map: MapLibreMap, selectedFeature: RailwayFeature | null) {
   const selectedSource = map.getSource(SELECTED_SOURCE_ID) as GeoJSONSource;
   selectedSource.setData(
     selectedFeature
       ? ({ type: "FeatureCollection", features: [selectedFeature] } as GeoJSON.FeatureCollection)
       : emptyFeatureCollection
   );
+}
 
+function updateSelectedChunksSource(map: MapLibreMap, selectedChunkFeatures: RailwayChunkFeature[]) {
   const selectedChunksSource = map.getSource(SELECTED_CHUNKS_SOURCE_ID) as GeoJSONSource;
   selectedChunksSource.setData({
     type: "FeatureCollection",
     features: selectedChunkFeatures
   } as unknown as GeoJSON.FeatureCollection);
+}
 
+function updateAdminSources(map: MapLibreMap, adminData: AdminMapData) {
   const eventSource = map.getSource(EVENT_SOURCE_ID) as GeoJSONSource;
   eventSource.setData(adminData.events as unknown as GeoJSON.FeatureCollection);
 
@@ -421,9 +502,20 @@ function updateRailwayData(
   defectSource.setData(adminData.defects as unknown as GeoJSON.FeatureCollection);
 }
 
+function toggleChunk(
+  chunks: RailwayChunkProperties[],
+  chunk: RailwayChunkProperties
+): RailwayChunkProperties[] {
+  const exists = chunks.some((item) => String(item.id) === String(chunk.id));
+  return exists
+    ? chunks.filter((item) => String(item.id) !== String(chunk.id))
+    : [...chunks, chunk];
+}
+
 function updateLayerVisibility(map: MapLibreMap, visibleLayers: Record<LayerKey, boolean>) {
   setVisibility(map, RAILWAY_LINE_LAYER_ID, visibleLayers.railways);
   setVisibility(map, RAILWAY_HIT_LAYER_ID, visibleLayers.railways);
+  setVisibility(map, RAILWAY_CHUNK_GUIDE_LAYER_ID, visibleLayers.railways);
   setVisibility(map, RAILWAY_CHUNK_HIT_LAYER_ID, visibleLayers.railways);
   setVisibility(map, RAILWAY_SELECTED_LAYER_ID, visibleLayers.railways);
   setVisibility(map, RAILWAY_SELECTED_CHUNKS_LAYER_ID, visibleLayers.railways);

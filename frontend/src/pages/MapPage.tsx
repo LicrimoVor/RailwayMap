@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminPanel } from "../components/AdminPanel";
 import { LayerPanel } from "../components/LayerPanel";
@@ -7,6 +8,7 @@ import { StatusBar } from "../components/StatusBar";
 import { TopBar } from "../components/TopBar";
 import { useRailwayData } from "../hooks/useRailwayData";
 import { fetchAdminMapData } from "../services/adminApi";
+import { fetchSegmentChunksForSection } from "../services/railwayApi";
 import { useMapStore } from "../store/mapStore";
 import type { AdminMapData } from "../types/admin";
 
@@ -34,11 +36,34 @@ export function MapPage() {
     queryFn: fetchAdminMapData,
     staleTime: 30_000
   });
+  const selectedSectionCanLoadChunks =
+    selectedSegment?.section_start_offset_m !== undefined &&
+    selectedSegment?.section_start_offset_m !== null &&
+    selectedSegment?.section_end_offset_m !== undefined &&
+    selectedSegment?.section_end_offset_m !== null;
+  const chunkQuery = useQuery({
+    queryKey: [
+      "segment-chunks",
+      selectedSegment?.id,
+      selectedSegment?.section_start_offset_m,
+      selectedSegment?.section_end_offset_m
+    ],
+    queryFn: () => fetchSegmentChunksForSection(selectedSegment!),
+    enabled: selectedSectionCanLoadChunks,
+    staleTime: 60_000
+  });
+  const mapRailwayData = useMemo(
+    () => ({
+      ...railwayData,
+      chunks: chunkQuery.data ?? { type: "FeatureCollection" as const, features: [] }
+    }),
+    [railwayData, chunkQuery.data]
+  );
 
   return (
     <main className="relative h-full w-full overflow-hidden">
       <MapCanvas
-        data={railwayData}
+        data={mapRailwayData}
         adminData={adminMapQuery.data ?? emptyAdminData}
         visibleLayers={visibleLayers}
         selectedSegment={selectedSegment}
@@ -71,7 +96,7 @@ export function MapPage() {
             visibleLayers={visibleLayers}
             onToggleLayer={toggleLayer}
             onCollapse={() => setLeftPanelOpen(false)}
-            summary={railwayData.summary}
+            summary={mapRailwayData.summary}
           />
           <StatusBar isFallback={isFallback} error={apiError} />
         </div>

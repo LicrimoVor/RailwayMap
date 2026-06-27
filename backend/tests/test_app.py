@@ -20,6 +20,8 @@ def test_stage_api_routes_are_registered() -> None:
         "/api/segments/{segment_id}",
         "/api/segment-chunks",
         "/api/segment-chunks/rebuild",
+        "/api/segment-sections-10km",
+        "/api/segment-sections-10km/rebuild",
         "/api/stations",
         "/api/events",
         "/api/defects",

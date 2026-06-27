@@ -1,6 +1,6 @@
 from shapely.geometry import LineString
 
-from app.gis.measurements import split_linestring_by_length_m
+from app.libs.measurements import split_linestring_by_length_m
 
 
 def test_linestring_can_be_split_into_roughly_100m_chunks() -> None:

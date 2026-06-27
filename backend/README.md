@@ -83,9 +83,18 @@ Fine-grained selection:
 
 - `GET /api/segment-chunks`
 - `POST /api/segment-chunks/rebuild`
+- `GET /api/segment-sections-10km`
+- `POST /api/segment-sections-10km/rebuild`
 
-Build 100 meter chunks after OSM import:
+Build 100 meter chunks and 10 km render sections after OSM import:
 
 ```powershell
 python utilities/rebuild_segment_chunks.py --chunk-length-m 100
+python utilities/rebuild_segment_sections_10km.py --section-length-m 10000
+```
+
+Export railway sections to CSV:
+
+```powershell
+python utilities/export_railway_sections_csv.py --output data/railway_sections.csv
 ```

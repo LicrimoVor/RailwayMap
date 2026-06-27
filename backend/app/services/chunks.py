@@ -6,8 +6,8 @@ from geoalchemy2.shape import from_shape, to_shape
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.gis.measurements import split_linestring_by_length_m
-from app.models.railway import RailwaySegment, RailwaySegmentChunk
+from app.libs.measurements import split_linestring_by_length_m
+from app.models.railway import RailwaySegment, RailwaySegmentChunk, RailwaySegmentSection10km
 
 
 def rebuild_segment_chunks(
@@ -41,6 +41,47 @@ def rebuild_segment_chunks(
                     end_offset_m=Decimal(f"{end_m:.2f}"),
                     length_m=Decimal(f"{length_m:.2f}"),
                     geometry=from_shape(chunk_line, srid=4326),
+                )
+            )
+            created += 1
+            if created % flush_every == 0:
+                session.flush()
+
+    session.flush()
+    return created
+
+
+def rebuild_segment_sections_10km(
+    session: Session,
+    section_length_m: float = 10_000.0,
+    segment_ids: list[int] | None = None,
+    flush_every: int = 1_000,
+) -> int:
+    delete_statement = delete(RailwaySegmentSection10km)
+    if segment_ids is not None:
+        delete_statement = delete_statement.where(RailwaySegmentSection10km.segment_id.in_(segment_ids))
+    session.execute(delete_statement)
+    session.flush()
+
+    select_statement = select(RailwaySegment).order_by(RailwaySegment.id)
+    if segment_ids is not None:
+        select_statement = select_statement.where(RailwaySegment.id.in_(segment_ids))
+
+    created = 0
+    for segment in session.scalars(select_statement):
+        line = to_shape(segment.geometry)
+        for section_index, start_m, end_m, length_m, section_line in split_linestring_by_length_m(
+            line,
+            chunk_length_m=section_length_m,
+        ):
+            session.add(
+                RailwaySegmentSection10km(
+                    segment_id=segment.id,
+                    section_index=section_index,
+                    start_offset_m=Decimal(f"{start_m:.2f}"),
+                    end_offset_m=Decimal(f"{end_m:.2f}"),
+                    length_m=Decimal(f"{length_m:.2f}"),
+                    geometry=from_shape(section_line, srid=4326),
                 )
             )
             created += 1

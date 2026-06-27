@@ -2,6 +2,11 @@ import type { Feature, FeatureCollection, LineStringGeometry, PointGeometry } fr
 
 export type RailwaySegmentProperties = {
   id: number | string;
+  section_id?: number | string | null;
+  section_index?: number | null;
+  section_start_offset_m?: number | string | null;
+  section_end_offset_m?: number | string | null;
+  section_length_m?: number | string | null;
   osm_id?: number | null;
   name?: string | null;
   branch?: string | null;

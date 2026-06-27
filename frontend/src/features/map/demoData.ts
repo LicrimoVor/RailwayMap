@@ -1,5 +1,5 @@
 import type { RailwayData, RailwayFeatureCollection, StationFeatureCollection } from "../../types/railway";
-import { buildRailwaySummary } from "./utils";
+import { buildRailwaySummary } from "../../libs/railway";
 
 const demoSegments: RailwayFeatureCollection = {
   type: "FeatureCollection",
@@ -21,9 +21,9 @@ const demoSegments: RailwayFeatureCollection = {
       properties: {
         id: 1,
         osm_id: 1001,
-        name: "Trans-Siberian Railway",
-        branch: "Main",
-        operator: "RZD",
+        name: "Транссибирская магистраль",
+        branch: "Главный ход",
+        operator: "РЖД",
         gauge: 1520,
         electrified: "contact_line",
         voltage: 25000,
@@ -49,9 +49,9 @@ const demoSegments: RailwayFeatureCollection = {
       properties: {
         id: 2,
         osm_id: 1002,
-        name: "Baikal-Amur Mainline",
-        branch: "BAM",
-        operator: "RZD",
+        name: "Байкало-Амурская магистраль",
+        branch: "БАМ",
+        operator: "РЖД",
         gauge: 1520,
         electrified: "partial",
         voltage: 25000,
@@ -76,9 +76,9 @@ const demoSegments: RailwayFeatureCollection = {
       properties: {
         id: 3,
         osm_id: 1003,
-        name: "North-West to South Corridor",
-        branch: "Demo",
-        operator: "RZD",
+        name: "Коридор Северо-Запад - Юг",
+        branch: "Демо",
+        operator: "РЖД",
         gauge: 1520,
         electrified: "contact_line",
         voltage: 3000,
@@ -95,11 +95,11 @@ const demoSegments: RailwayFeatureCollection = {
 const demoStations: StationFeatureCollection = {
   type: "FeatureCollection",
   features: [
-    station(1, "Moscow", [37.62, 55.75]),
-    station(2, "Yekaterinburg", [60.61, 56.84]),
-    station(3, "Novosibirsk", [82.93, 55.03]),
-    station(4, "Irkutsk", [104.3, 52.29]),
-    station(5, "Vladivostok", [131.88, 43.12])
+    station(1, "Москва", [37.62, 55.75]),
+    station(2, "Екатеринбург", [60.61, 56.84]),
+    station(3, "Новосибирск", [82.93, 55.03]),
+    station(4, "Иркутск", [104.3, 52.29]),
+    station(5, "Владивосток", [131.88, 43.12])
   ]
 };
 

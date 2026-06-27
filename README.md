@@ -74,14 +74,28 @@ the map.
 
 ## Fine-Grained Selection
 
-Railway ways can be split into selectable chunks, 100 meters by default:
+Railway ways are split into two different tables:
+
+- `railway_segment_chunks` - fine 100 m chunks for exact selection and event geometry.
+- `railway_segment_sections_10km` - coarse 10 km sections for fast map rendering.
+
+Build both after OSM import:
 
 ```powershell
 cd backend
 .\.venv\Scripts\alembic.exe upgrade head
 .\.venv\Scripts\python.exe utilities\rebuild_segment_chunks.py --chunk-length-m 100
+.\.venv\Scripts\python.exe utilities\rebuild_segment_sections_10km.py --section-length-m 10000
 ```
 
-The frontend loads `/api/segment-chunks` and lets users build an arbitrary
-selection by clicking multiple highlighted chunks, even when they belong to
-different source OSM segments. New events use the selected chunk geometry.
+The frontend renders `/api/segment-sections-10km` first. When a user clicks a
+10 km section, the UI requests only the matching 100 m chunks from
+`/api/segment-chunks`, filtered by segment id and offsets.
+
+Export sections to CSV:
+
+```powershell
+.\.venv\Scripts\python.exe utilities\export_railway_sections_csv.py --output data\railway_sections.csv
+```
+
+Use `--kind 10km`, `--kind 100m`, or default `--kind all`.

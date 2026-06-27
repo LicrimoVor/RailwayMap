@@ -37,9 +37,21 @@ Useful flags:
 
 ## Rebuild selectable railway chunks
 
-After importing railway segments, build 100 meter chunks for fine-grained map
-selection:
+After importing railway segments, build both map sections:
 
 ```powershell
 .\.venv\Scripts\python.exe utilities\rebuild_segment_chunks.py --chunk-length-m 100
+.\.venv\Scripts\python.exe utilities\rebuild_segment_sections_10km.py --section-length-m 10000
 ```
+
+The frontend renders 10 km sections first. It requests 100 meter chunks only
+after a user clicks a 10 km section.
+
+## Export railway sections to CSV
+
+```powershell
+.\.venv\Scripts\python.exe utilities\export_railway_sections_csv.py --output data\railway_sections.csv
+```
+
+Use `--kind 10km` or `--kind 100m` to export only one table. Use
+`--no-geometry` when the CSV should stay compact.

@@ -36,23 +36,27 @@ class RailwaySegment(TimestampMixin, Base):
         nullable=False,
     )
 
-    kilometer_points: Mapped[list[KilometerPoint]] = relationship(
+    kilometer_points: Mapped[list["KilometerPoint"]] = relationship(
         back_populates="segment",
         cascade="all, delete-orphan",
     )
-    events: Mapped[list[RailwayEvent]] = relationship(
+    events: Mapped[list["RailwayEvent"]] = relationship(
         back_populates="segment",
         cascade="all, delete-orphan",
     )
-    parameters: Mapped[list[SegmentParameter]] = relationship(
+    parameters: Mapped[list["SegmentParameter"]] = relationship(
         back_populates="segment",
         cascade="all, delete-orphan",
     )
-    defects: Mapped[list[Defect]] = relationship(
+    defects: Mapped[list["Defect"]] = relationship(
         back_populates="segment",
         cascade="all, delete-orphan",
     )
-    chunks: Mapped[list[RailwaySegmentChunk]] = relationship(
+    chunks: Mapped[list["RailwaySegmentChunk"]] = relationship(
+        back_populates="segment",
+        cascade="all, delete-orphan",
+    )
+    sections_10km: Mapped[list["RailwaySegmentSection10km"]] = relationship(
         back_populates="segment",
         cascade="all, delete-orphan",
     )
@@ -80,43 +84,19 @@ class RailwaySegmentChunk(Base):
         nullable=False,
     )
 
-    segment: Mapped[RailwaySegment] = relationship(back_populates="chunks")
+    segment: Mapped["RailwaySegment"] = relationship(back_populates="chunks")
 
 
-class Station(Base):
-    __tablename__ = "stations"
-    __table_args__ = (UniqueConstraint("osm_type", "osm_id", name="uq_stations_osm_type_osm_id"),)
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    osm_type: Mapped[str] = mapped_column(String(16), default="node", nullable=False)
-    osm_id: Mapped[int | None] = mapped_column(BigInteger, index=True, nullable=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    esr_code: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    railway_type: Mapped[str] = mapped_column(String(64), default="station", nullable=False)
-    osm_tags: Mapped[dict[str, str]] = mapped_column(JSONB, default=dict, nullable=False)
-    geometry: Mapped[Any] = mapped_column(
-        Geometry(geometry_type="POINT", srid=4326, spatial_index=True),
-        nullable=False,
-    )
-
-
-class City(Base):
-    __tablename__ = "cities"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(255), index=True, nullable=False)
-    population: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    geometry: Mapped[Any] = mapped_column(
-        Geometry(geometry_type="POINT", srid=4326, spatial_index=True),
-        nullable=False,
-    )
-
-
-class KilometerPoint(Base):
-    __tablename__ = "kilometer_points"
+class RailwaySegmentSection10km(Base):
+    __tablename__ = "railway_segment_sections_10km"
     __table_args__ = (
-        UniqueConstraint("segment_id", "km", "pk", name="uq_kilometer_points_segment_km_pk"),
-        Index("ix_kilometer_points_km_pk", "km", "pk"),
+        UniqueConstraint("segment_id", "section_index", name="uq_railway_segment_sections_10km_segment_index"),
+        Index(
+            "ix_railway_segment_sections_10km_segment_offsets",
+            "segment_id",
+            "start_offset_m",
+            "end_offset_m",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -125,15 +105,13 @@ class KilometerPoint(Base):
         index=True,
         nullable=False,
     )
-    km: Mapped[int] = mapped_column(Integer, nullable=False)
-    pk: Mapped[int] = mapped_column(Integer, nullable=False)
-    offset_m: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    section_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    start_offset_m: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    end_offset_m: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    length_m: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     geometry: Mapped[Any] = mapped_column(
-        Geometry(geometry_type="POINT", srid=4326, spatial_index=True),
+        Geometry(geometry_type="LINESTRING", srid=4326, spatial_index=True),
         nullable=False,
     )
 
-    segment: Mapped[RailwaySegment] = relationship(back_populates="kilometer_points")
-
-
-from app.models.events import Defect, RailwayEvent, SegmentParameter  # noqa: E402
+    segment: Mapped["RailwaySegment"] = relationship(back_populates="sections_10km")

@@ -70,5 +70,5 @@ function isFeatureCollection(value: unknown): value is { type: "FeatureCollectio
 }
 
 export function defaultEventType(eventTypes: EventType[]): EventType {
-  return eventTypes[0] ?? { id: 0, name: "Warning", color: "#eab308" };
+  return eventTypes[0] ?? { id: 0, name: "Предупреждение", color: "#eab308" };
 }
