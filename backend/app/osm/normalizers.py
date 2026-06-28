@@ -77,15 +77,52 @@ def parse_osm_id(value: Any) -> int | None:
 
 
 def coerce_linestring(geometry: BaseGeometry) -> LineString | None:
-    if geometry.is_empty:
+    lines = coerce_linestrings(geometry)
+    if not lines:
         return None
+    return max(lines, key=linestring_length_m)
+
+
+def coerce_linestrings(geometry: BaseGeometry) -> list[LineString]:
+    if geometry.is_empty:
+        return []
     if isinstance(geometry, LineString):
-        return geometry
-    if isinstance(geometry, MultiLineString):
-        merged = linemerge(geometry)
-        if isinstance(merged, LineString):
-            return merged
-    return None
+        return [geometry] if len(geometry.coords) >= 2 else []
+    if not isinstance(geometry, MultiLineString):
+        return []
+
+    merged = linemerge(geometry)
+    if isinstance(merged, LineString):
+        return [merged] if len(merged.coords) >= 2 else []
+    if isinstance(merged, MultiLineString):
+        return [line for line in merged.geoms if len(line.coords) >= 2]
+    return []
+
+
+def railway_segment_features(feature: OSMFeature) -> list[OSMFeature]:
+    lines = coerce_linestrings(feature.geometry)
+    if len(lines) <= 1:
+        return [feature] if lines else []
+
+    osm_type = _part_osm_type(feature.osm_type)
+    features: list[OSMFeature] = []
+    for index, line in enumerate(lines, start=1):
+        properties = {
+            **feature.properties,
+            "source_osm_type": feature.osm_type,
+            "source_osm_id": str(feature.osm_id),
+            "source_part_index": str(index),
+            "source_part_count": str(len(lines)),
+        }
+        features.append(
+            OSMFeature(
+                osm_id=_part_osm_id(feature.osm_id, index),
+                osm_type=osm_type,
+                geometry=line,
+                properties=properties,
+            )
+        )
+    return features
 
 
 def coerce_point(geometry: BaseGeometry) -> Point | None:
@@ -119,6 +156,15 @@ def railway_segment_values(feature: OSMFeature) -> dict[str, Any] | None:
         "osm_tags": clean_tags(properties),
         "geometry": line,
     }
+
+
+def _part_osm_type(osm_type: str) -> str:
+    value = f"{osm_type}_part"
+    return value[:16]
+
+
+def _part_osm_id(osm_id: int, part_index: int) -> int:
+    return osm_id * 1000 + part_index
 
 
 def station_values(feature: OSMFeature) -> dict[str, Any] | None:

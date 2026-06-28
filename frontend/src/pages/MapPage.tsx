@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminPanel } from "../components/AdminPanel";
 import { LayerPanel } from "../components/LayerPanel";
@@ -11,6 +11,7 @@ import { fetchAdminMapData } from "../services/adminApi";
 import { fetchSegmentChunksForSection } from "../services/railwayApi";
 import { useMapStore } from "../store/mapStore";
 import type { AdminMapData } from "../types/admin";
+import type { RailwayMapViewport } from "../types/railway";
 
 const emptyAdminData: AdminMapData = {
   events: { type: "FeatureCollection", features: [] },
@@ -18,6 +19,7 @@ const emptyAdminData: AdminMapData = {
 };
 
 export function MapPage() {
+  const [viewport, setViewport] = useState<RailwayMapViewport | null>(null);
   const { railwayData, isFallback, isLoading, apiError, refetch } = useRailwayData();
   const visibleLayers = useMapStore((state) => state.visibleLayers);
   const selectedSegment = useMapStore((state) => state.selectedSegment);
@@ -32,9 +34,17 @@ export function MapPage() {
   const setRightPanelOpen = useMapStore((state) => state.setRightPanelOpen);
   const setSelectedSegment = useMapStore((state) => state.setSelectedSegment);
   const adminMapQuery = useQuery({
-    queryKey: ["admin-map-data"],
-    queryFn: fetchAdminMapData,
-    staleTime: 30_000
+    queryKey: [
+      "admin-map-data",
+      viewport?.minLon.toFixed(2),
+      viewport?.minLat.toFixed(2),
+      viewport?.maxLon.toFixed(2),
+      viewport?.maxLat.toFixed(2)
+    ],
+    queryFn: () => fetchAdminMapData(viewport!),
+    enabled: viewport !== null,
+    staleTime: 30_000,
+    placeholderData: (previousData) => previousData
   });
   const selectedSectionCanLoadChunks =
     selectedSegment?.section_start_offset_m !== undefined &&
@@ -59,6 +69,17 @@ export function MapPage() {
     }),
     [railwayData, chunkQuery.data]
   );
+  const handleViewportChange = useCallback((nextViewport: RailwayMapViewport) => {
+    setViewport((currentViewport) =>
+      currentViewport &&
+      Math.abs(currentViewport.minLon - nextViewport.minLon) < 0.001 &&
+      Math.abs(currentViewport.minLat - nextViewport.minLat) < 0.001 &&
+      Math.abs(currentViewport.maxLon - nextViewport.maxLon) < 0.001 &&
+      Math.abs(currentViewport.maxLat - nextViewport.maxLat) < 0.001
+        ? currentViewport
+        : nextViewport
+    );
+  }, []);
 
   return (
     <main className="relative h-full w-full overflow-hidden">
@@ -68,6 +89,7 @@ export function MapPage() {
         visibleLayers={visibleLayers}
         selectedSegment={selectedSegment}
         selectedChunks={selectedChunks}
+        onViewportChange={handleViewportChange}
         onSelectSegment={(segment) => {
           setSelectedSegment(segment);
           if (segment) {

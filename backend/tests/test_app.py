@@ -20,8 +20,8 @@ def test_stage_api_routes_are_registered() -> None:
         "/api/segments/{segment_id}",
         "/api/segment-chunks",
         "/api/segment-chunks/rebuild",
-        "/api/segment-sections-10km",
-        "/api/segment-sections-10km/rebuild",
+        "/api/segment-sections-50km",
+        "/api/segment-sections-50km/rebuild",
         "/api/stations",
         "/api/events",
         "/api/defects",
@@ -31,3 +31,24 @@ def test_stage_api_routes_are_registered() -> None:
     }
 
     assert expected_paths <= set(paths)
+
+
+def test_railway_map_routes_expose_viewport_filters() -> None:
+    app = create_app()
+    paths = app.openapi()["paths"]
+
+    for path in (
+        "/api/segments",
+        "/api/segment-chunks",
+        "/api/segment-sections-50km",
+        "/api/stations",
+        "/api/events",
+        "/api/defects",
+    ):
+        parameters = paths[path]["get"]["parameters"]
+        parameter_names = {parameter["name"] for parameter in parameters}
+
+        assert {"min_lon", "min_lat", "max_lon", "max_lat"} <= parameter_names
+
+    segment_parameters = paths["/api/segments"]["get"]["parameters"]
+    assert "sample_step_m" in {parameter["name"] for parameter in segment_parameters}

@@ -5,16 +5,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+from tqdm import tqdm
 from geoalchemy2.shape import from_shape
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.railway import RailwaySegment, Station
 from app.osm.features import OSMFeature
-from app.osm.normalizers import railway_segment_values, station_values
+from app.osm.normalizers import railway_segment_features, railway_segment_values, station_values
 from app.osm.readers import OsmiumRailwayReader, PyrosmRailwayReader
+from app.services.chunks import segment_chunks_from_line, segment_sections_50km_from_line
 
 ImportAction = Literal["created", "updated", "skipped"]
+SegmentImportResult = tuple[ImportAction, int, int]
 
 
 @dataclass
@@ -22,6 +25,8 @@ class OSMImportStats:
     segments_created: int = 0
     segments_updated: int = 0
     segments_skipped: int = 0
+    chunks_written: int = 0
+    sections_50km_written: int = 0
     stations_created: int = 0
     stations_updated: int = 0
     stations_skipped: int = 0
@@ -76,15 +81,20 @@ class OSMImporter:
 
         def on_segment(feature: OSMFeature) -> None:
             nonlocal segment_index
-            segment_index += 1
-            match self._upsert_segment(feature):
-                case "created":
-                    stats.segments_created += 1
-                case "updated":
-                    stats.segments_updated += 1
-                case "skipped":
-                    stats.segments_skipped += 1
-            self._flush_batch(segment_index)
+            for action, chunks_written, sections_50km_written in tqdm(
+                self._upsert_segments(feature)
+            ):
+                segment_index += 1
+                match action:
+                    case "created":
+                        stats.segments_created += 1
+                    case "updated":
+                        stats.segments_updated += 1
+                    case "skipped":
+                        stats.segments_skipped += 1
+                stats.chunks_written += chunks_written
+                stats.sections_50km_written += sections_50km_written
+                self._flush_batch(segment_index)
 
         def on_station(feature: OSMFeature) -> None:
             nonlocal station_index
@@ -118,14 +128,17 @@ class OSMImporter:
     ) -> OSMImportStats:
         stats = OSMImportStats()
 
-        for index, feature in enumerate(segment_features, start=1):
-            match self._upsert_segment(feature):
-                case "created":
-                    stats.segments_created += 1
-                case "updated":
-                    stats.segments_updated += 1
-                case "skipped":
-                    stats.segments_skipped += 1
+        for index, feature in tqdm(enumerate(segment_features, start=1)):
+            for action, chunks_written, sections_50km_written in self._upsert_segments(feature):
+                match action:
+                    case "created":
+                        stats.segments_created += 1
+                    case "updated":
+                        stats.segments_updated += 1
+                    case "skipped":
+                        stats.segments_skipped += 1
+                stats.chunks_written += chunks_written
+                stats.sections_50km_written += sections_50km_written
             self._flush_batch(index)
 
         for index, feature in enumerate(station_features, start=1):
@@ -145,13 +158,21 @@ class OSMImporter:
 
         return stats
 
-    def _upsert_segment(self, feature: OSMFeature) -> ImportAction:
+    def _upsert_segments(self, feature: OSMFeature) -> list[SegmentImportResult]:
+        segment_features = railway_segment_features(feature)
+        if not segment_features:
+            return [("skipped", 0, 0)]
+        return [self._upsert_segment(segment_feature) for segment_feature in segment_features]
+
+    def _upsert_segment(self, feature: OSMFeature) -> SegmentImportResult:
         values = railway_segment_values(feature)
         if values is None:
-            return "skipped"
+            return ("skipped", 0, 0)
 
         geometry = values.pop("geometry")
         values["geometry"] = from_shape(geometry, srid=4326)
+        chunks = segment_chunks_from_line(geometry)
+        sections_50km = segment_sections_50km_from_line(geometry)
 
         segment = self.session.scalar(
             select(RailwaySegment).where(
@@ -160,14 +181,17 @@ class OSMImporter:
             )
         )
         if segment is None:
-            self.session.add(
-                RailwaySegment(osm_type=feature.osm_type, osm_id=feature.osm_id, **values)
-            )
-            return "created"
+            segment = RailwaySegment(osm_type=feature.osm_type, osm_id=feature.osm_id, **values)
+            segment.chunks = chunks
+            segment.sections_50km = sections_50km
+            self.session.add(segment)
+            return ("created", len(chunks), len(sections_50km))
 
         for key, value in values.items():
             setattr(segment, key, value)
-        return "updated"
+        segment.chunks = chunks
+        segment.sections_50km = sections_50km
+        return ("updated", len(chunks), len(sections_50km))
 
     def _upsert_station(self, feature: OSMFeature) -> ImportAction:
         values = station_values(feature)

@@ -1,9 +1,5 @@
 import { AlertTriangle } from "lucide-react";
-
-type StatusBarProps = {
-  isFallback: boolean;
-  error: unknown;
-};
+import type { StatusBarProps } from "../model/types";
 
 export function StatusBar({ isFallback, error }: StatusBarProps) {
   if (!isFallback || !error) {

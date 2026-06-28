@@ -52,6 +52,14 @@ export type RailwaySummary = {
   electrification: Array<{ name: string; count: number }>;
 };
 
+export type RailwayMapViewport = {
+  minLon: number;
+  minLat: number;
+  maxLon: number;
+  maxLat: number;
+  zoom: number;
+};
+
 export type RailwayData = {
   segments: RailwayFeatureCollection;
   chunks: RailwayChunkFeatureCollection;

@@ -56,7 +56,7 @@ class RailwaySegment(TimestampMixin, Base):
         back_populates="segment",
         cascade="all, delete-orphan",
     )
-    sections_10km: Mapped[list["RailwaySegmentSection10km"]] = relationship(
+    sections_50km: Mapped[list["RailwaySegmentSection50km"]] = relationship(
         back_populates="segment",
         cascade="all, delete-orphan",
     )
@@ -65,8 +65,17 @@ class RailwaySegment(TimestampMixin, Base):
 class RailwaySegmentChunk(Base):
     __tablename__ = "railway_segment_chunks"
     __table_args__ = (
-        UniqueConstraint("segment_id", "chunk_index", name="uq_railway_segment_chunks_segment_index"),
-        Index("ix_railway_segment_chunks_segment_offsets", "segment_id", "start_offset_m", "end_offset_m"),
+        UniqueConstraint(
+            "segment_id",
+            "chunk_index",
+            name="uq_railway_segment_chunks_segment_index",
+        ),
+        Index(
+            "ix_railway_segment_chunks_segment_offsets",
+            "segment_id",
+            "start_offset_m",
+            "end_offset_m",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -87,12 +96,16 @@ class RailwaySegmentChunk(Base):
     segment: Mapped["RailwaySegment"] = relationship(back_populates="chunks")
 
 
-class RailwaySegmentSection10km(Base):
-    __tablename__ = "railway_segment_sections_10km"
+class RailwaySegmentSection50km(Base):
+    __tablename__ = "railway_segment_sections_50km"
     __table_args__ = (
-        UniqueConstraint("segment_id", "section_index", name="uq_railway_segment_sections_10km_segment_index"),
+        UniqueConstraint(
+            "segment_id",
+            "section_index",
+            name="uq_railway_segment_sections_50km_segment_index",
+        ),
         Index(
-            "ix_railway_segment_sections_10km_segment_offsets",
+            "ix_railway_segment_sections_50km_segment_offsets",
             "segment_id",
             "start_offset_m",
             "end_offset_m",
@@ -114,4 +127,4 @@ class RailwaySegmentSection10km(Base):
         nullable=False,
     )
 
-    segment: Mapped["RailwaySegment"] = relationship(back_populates="sections_10km")
+    segment: Mapped["RailwaySegment"] = relationship(back_populates="sections_50km")

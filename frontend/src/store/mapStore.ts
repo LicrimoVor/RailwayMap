@@ -26,7 +26,7 @@ type MapState = {
 export const useMapStore = create<MapState>((set) => ({
   visibleLayers: {
     railways: true,
-    stations: true,
+    stations: false,
     electrification: true,
     defects: true,
     events: true

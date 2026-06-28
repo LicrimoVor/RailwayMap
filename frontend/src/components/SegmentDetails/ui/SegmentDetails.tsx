@@ -1,16 +1,10 @@
 import { PanelRightClose, X } from "lucide-react";
-import type { RailwayChunkProperties, RailwaySegmentProperties } from "../types/railway";
-import { displayValue, formatLength } from "../libs/railway";
-
-type SegmentDetailsProps = {
-  segment: RailwaySegmentProperties | null;
-  selectedChunks: RailwayChunkProperties[];
-  onCollapse: () => void;
-  onClose: () => void;
-};
+import { displayValue, formatLength } from "../../../libs/railway";
+import { selectedChunksLength } from "../libs/selection";
+import type { SegmentDetailsProps } from "../model/types";
 
 export function SegmentDetails({ segment, selectedChunks, onCollapse, onClose }: SegmentDetailsProps) {
-  const selectedLength = selectedChunks.reduce((total, chunk) => total + Number(chunk.length_m || 0), 0);
+  const selectedLength = selectedChunksLength(selectedChunks);
 
   return (
     <aside className="pointer-events-auto flex max-h-full w-full flex-col rounded-lg border border-neutral-200 bg-white/95 shadow-panel backdrop-blur md:w-96">

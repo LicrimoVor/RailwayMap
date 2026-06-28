@@ -11,11 +11,15 @@ from shapely.geometry import Point, shape
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.api.spatial_filters import normalize_bbox, with_bbox_filter
 from app.core.database import get_session
 from app.libs.geojson import feature, feature_collection, json_value, model_properties
 from app.models.events import Defect, EventType, Layer, RailwayEvent, SegmentParameter
 from app.models.railway import RailwaySegment
-from app.services.chunks import rebuild_segment_chunks, rebuild_segment_sections_10km
+from app.services.chunks import (
+    rebuild_segment_chunks,
+    rebuild_segment_sections_50km,
+)
 
 router = APIRouter(tags=["admin"])
 
@@ -72,8 +76,8 @@ class RebuildChunksPayload(BaseModel):
     segment_ids: list[int] | None = None
 
 
-class RebuildSections10kmPayload(BaseModel):
-    section_length_m: float = Field(default=10_000.0, gt=0, le=100_000)
+class RebuildSections50kmPayload(BaseModel):
+    section_length_m: float = Field(default=50_000.0, gt=0, le=200_000)
     segment_ids: list[int] | None = None
 
 
@@ -97,6 +101,10 @@ def create_event_type(
 @router.get("/events")
 def list_events(
     segment_id: int | None = Query(default=None),
+    min_lon: float | None = Query(default=None, ge=-180, le=180),
+    min_lat: float | None = Query(default=None, ge=-90, le=90),
+    max_lon: float | None = Query(default=None, ge=-180, le=180),
+    max_lat: float | None = Query(default=None, ge=-90, le=90),
     session: Session = Depends(get_session),
 ) -> dict[str, object]:
     statement = select(RailwayEvent).options(selectinload(RailwayEvent.event_type)).order_by(
@@ -105,6 +113,9 @@ def list_events(
     )
     if segment_id is not None:
         statement = statement.where(RailwayEvent.segment_id == segment_id)
+    bbox = normalize_bbox(min_lon, min_lat, max_lon, max_lat)
+    if bbox is not None:
+        statement = with_bbox_filter(statement, RailwayEvent.geometry, bbox)
 
     events = session.scalars(statement).all()
     return feature_collection([event_feature(event) for event in events])
@@ -142,11 +153,18 @@ def create_event(
 @router.get("/defects")
 def list_defects(
     segment_id: int | None = Query(default=None),
+    min_lon: float | None = Query(default=None, ge=-180, le=180),
+    min_lat: float | None = Query(default=None, ge=-90, le=90),
+    max_lon: float | None = Query(default=None, ge=-180, le=180),
+    max_lat: float | None = Query(default=None, ge=-90, le=90),
     session: Session = Depends(get_session),
 ) -> dict[str, object]:
     statement = select(Defect).order_by(Defect.created_at.desc(), Defect.id.desc())
     if segment_id is not None:
         statement = statement.where(Defect.segment_id == segment_id)
+    bbox = normalize_bbox(min_lon, min_lat, max_lon, max_lat)
+    if bbox is not None:
+        statement = with_bbox_filter(statement, Defect.geometry, bbox)
 
     defects = session.scalars(statement).all()
     return feature_collection([defect_feature(defect) for defect in defects])
@@ -231,12 +249,12 @@ def rebuild_chunks(
     return {"created": created, "chunk_length_m": payload.chunk_length_m}
 
 
-@router.post("/segment-sections-10km/rebuild")
-def rebuild_sections_10km(
-    payload: RebuildSections10kmPayload,
+@router.post("/segment-sections-50km/rebuild")
+def rebuild_sections_50km(
+    payload: RebuildSections50kmPayload,
     session: Session = Depends(get_session),
 ) -> dict[str, Any]:
-    created = rebuild_segment_sections_10km(
+    created = rebuild_segment_sections_50km(
         session,
         section_length_m=payload.section_length_m,
         segment_ids=payload.segment_ids,

@@ -7,22 +7,23 @@ import {
   createSegmentParameter,
   defaultEventType,
   fetchSegmentAdminData
-} from "../services/adminApi";
-import type { RailwayChunkProperties, RailwaySegmentProperties } from "../types/railway";
-import type { LineStringGeometry, MultiLineStringGeometry, PointGeometry } from "../types/geojson";
-
-type AdminPanelProps = {
-  segment: RailwaySegmentProperties | null;
-  selectedChunks: RailwayChunkProperties[];
-};
-
-type Tab = "event" | "defect" | "parameter";
+} from "../../../services/adminApi";
+import { selectedChunksToGeometry, selectedChunksToPoint } from "../libs/chunkGeometry";
+import { optionalNumber, toNumber } from "../libs/formNumbers";
+import type {
+  AdminPanelProps,
+  AdminPanelTab,
+  DefectGeometry,
+  DefectPayload,
+  EventGeometry,
+  EventPayload
+} from "../model/types";
 
 export function AdminPanel({ segment, selectedChunks }: AdminPanelProps) {
   const segmentId = Number(selectedChunks[0]?.segment_id ?? segment?.id);
   const isSegmentSelected = Number.isFinite(segmentId);
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<Tab>("event");
+  const [activeTab, setActiveTab] = useState<AdminPanelTab>("event");
   const [message, setMessage] = useState<string | null>(null);
 
   const segmentQuery = useQuery({
@@ -158,9 +159,9 @@ function EventForm({
   segmentId: number;
   defaultName: string;
   defaultColor: string;
-  selectedGeometry: LineStringGeometry | MultiLineStringGeometry | undefined;
+  selectedGeometry: EventGeometry;
   disabled: boolean;
-  onSubmit: Parameters<typeof createEvent>[0] extends never ? never : (payload: Parameters<typeof createEvent>[0]) => void;
+  onSubmit: (payload: EventPayload) => void;
 }) {
   const [name, setName] = useState(defaultName);
   const [color, setColor] = useState(defaultColor);
@@ -221,9 +222,9 @@ function DefectForm({
   onSubmit
 }: {
   segmentId: number;
-  selectedGeometry: PointGeometry | undefined;
+  selectedGeometry: DefectGeometry;
   disabled: boolean;
-  onSubmit: Parameters<typeof createDefect>[0] extends never ? never : (payload: Parameters<typeof createDefect>[0]) => void;
+  onSubmit: (payload: DefectPayload) => void;
 }) {
   const [type, setType] = useState("Дефект пути");
   const [km, setKm] = useState("0");
@@ -382,49 +383,4 @@ function Counter({ label, value }: { label: string; value: number }) {
       <div className="text-neutral-500">{label}</div>
     </div>
   );
-}
-
-function toNumber(value: string): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function optionalNumber(value: string): number | null {
-  if (!value.trim()) {
-    return null;
-  }
-  return toNumber(value);
-}
-
-function selectedChunksToGeometry(
-  chunks: RailwayChunkProperties[]
-): LineStringGeometry | MultiLineStringGeometry | undefined {
-  const geometries = chunks
-    .map((chunk) => getChunkGeometry(chunk))
-    .filter((geometry): geometry is LineStringGeometry => geometry !== undefined);
-
-  if (geometries.length === 0) {
-    return undefined;
-  }
-  if (geometries.length === 1) {
-    return geometries[0];
-  }
-  return {
-    type: "MultiLineString",
-    coordinates: geometries.map((geometry) => geometry.coordinates)
-  };
-}
-
-function selectedChunksToPoint(chunks: RailwayChunkProperties[]): PointGeometry | undefined {
-  const geometry = getChunkGeometry(chunks[0]);
-  if (!geometry || geometry.coordinates.length === 0) {
-    return undefined;
-  }
-  const coordinate = geometry.coordinates[Math.floor(geometry.coordinates.length / 2)];
-  return { type: "Point", coordinates: coordinate };
-}
-
-function getChunkGeometry(chunk: RailwayChunkProperties | undefined): LineStringGeometry | undefined {
-  const maybeGeometry = (chunk as RailwayChunkProperties & { geometry?: LineStringGeometry } | undefined)?.geometry;
-  return maybeGeometry?.type === "LineString" ? maybeGeometry : undefined;
 }

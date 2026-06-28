@@ -3,16 +3,63 @@ from __future__ import annotations
 from decimal import Decimal
 
 from geoalchemy2.shape import from_shape, to_shape
+from shapely.geometry import LineString
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.libs.measurements import split_linestring_by_length_m
-from app.models.railway import RailwaySegment, RailwaySegmentChunk, RailwaySegmentSection10km
+from app.models.railway import (
+    RailwaySegment,
+    RailwaySegmentChunk,
+    RailwaySegmentSection50km,
+)
+
+
+DEFAULT_CHUNK_LENGTH_M = 100.0
+DEFAULT_SECTION_LENGTH_M = 50_000.0
+
+
+def segment_chunks_from_line(
+    line: LineString,
+    chunk_length_m: float = DEFAULT_CHUNK_LENGTH_M,
+) -> list[RailwaySegmentChunk]:
+    return [
+        RailwaySegmentChunk(
+            chunk_index=chunk_index,
+            start_offset_m=_decimal_m(start_m),
+            end_offset_m=_decimal_m(end_m),
+            length_m=_decimal_m(length_m),
+            geometry=from_shape(chunk_line, srid=4326),
+        )
+        for chunk_index, start_m, end_m, length_m, chunk_line in split_linestring_by_length_m(
+            line,
+            chunk_length_m=chunk_length_m,
+        )
+    ]
+
+
+def segment_sections_50km_from_line(
+    line: LineString,
+    section_length_m: float = DEFAULT_SECTION_LENGTH_M,
+) -> list[RailwaySegmentSection50km]:
+    return [
+        RailwaySegmentSection50km(
+            section_index=section_index,
+            start_offset_m=_decimal_m(start_m),
+            end_offset_m=_decimal_m(end_m),
+            length_m=_decimal_m(length_m),
+            geometry=from_shape(section_line, srid=4326),
+        )
+        for section_index, start_m, end_m, length_m, section_line in split_linestring_by_length_m(
+            line,
+            chunk_length_m=section_length_m,
+        )
+    ]
 
 
 def rebuild_segment_chunks(
     session: Session,
-    chunk_length_m: float = 100.0,
+    chunk_length_m: float = DEFAULT_CHUNK_LENGTH_M,
     segment_ids: list[int] | None = None,
     flush_every: int = 1_000,
 ) -> int:
@@ -37,9 +84,9 @@ def rebuild_segment_chunks(
                 RailwaySegmentChunk(
                     segment_id=segment.id,
                     chunk_index=chunk_index,
-                    start_offset_m=Decimal(f"{start_m:.2f}"),
-                    end_offset_m=Decimal(f"{end_m:.2f}"),
-                    length_m=Decimal(f"{length_m:.2f}"),
+                    start_offset_m=_decimal_m(start_m),
+                    end_offset_m=_decimal_m(end_m),
+                    length_m=_decimal_m(length_m),
                     geometry=from_shape(chunk_line, srid=4326),
                 )
             )
@@ -51,15 +98,32 @@ def rebuild_segment_chunks(
     return created
 
 
-def rebuild_segment_sections_10km(
+def rebuild_segment_sections_50km(
     session: Session,
-    section_length_m: float = 10_000.0,
+    section_length_m: float = DEFAULT_SECTION_LENGTH_M,
     segment_ids: list[int] | None = None,
     flush_every: int = 1_000,
 ) -> int:
-    delete_statement = delete(RailwaySegmentSection10km)
+    return _rebuild_segment_sections(
+        session,
+        section_model=RailwaySegmentSection50km,
+        section_length_m=section_length_m,
+        segment_ids=segment_ids,
+        flush_every=flush_every,
+    )
+
+
+def _rebuild_segment_sections(
+    session: Session,
+    *,
+    section_model,
+    section_length_m: float,
+    segment_ids: list[int] | None,
+    flush_every: int,
+) -> int:
+    delete_statement = delete(section_model)
     if segment_ids is not None:
-        delete_statement = delete_statement.where(RailwaySegmentSection10km.segment_id.in_(segment_ids))
+        delete_statement = delete_statement.where(section_model.segment_id.in_(segment_ids))
     session.execute(delete_statement)
     session.flush()
 
@@ -75,12 +139,12 @@ def rebuild_segment_sections_10km(
             chunk_length_m=section_length_m,
         ):
             session.add(
-                RailwaySegmentSection10km(
+                section_model(
                     segment_id=segment.id,
                     section_index=section_index,
-                    start_offset_m=Decimal(f"{start_m:.2f}"),
-                    end_offset_m=Decimal(f"{end_m:.2f}"),
-                    length_m=Decimal(f"{length_m:.2f}"),
+                    start_offset_m=_decimal_m(start_m),
+                    end_offset_m=_decimal_m(end_m),
+                    length_m=_decimal_m(length_m),
                     geometry=from_shape(section_line, srid=4326),
                 )
             )
@@ -90,3 +154,7 @@ def rebuild_segment_sections_10km(
 
     session.flush()
     return created
+
+
+def _decimal_m(value: float) -> Decimal:
+    return Decimal(f"{value:.2f}")

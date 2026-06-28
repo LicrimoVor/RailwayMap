@@ -7,6 +7,7 @@ from app.osm.features import OSMFeature
 from app.osm.importer import OSMImporter
 from app.osm.normalizers import (
     coerce_linestring,
+    coerce_linestrings,
     clean_tags,
     parse_osm_id,
     railway_segment_values,
@@ -110,6 +111,15 @@ def test_connected_multiline_can_be_coerced_to_linestring() -> None:
     assert list(line.coords) == [(0.0, 0.0), (1.0, 1.0), (2.0, 2.0)]
 
 
+def test_parallel_multiline_parts_are_preserved() -> None:
+    geometry = MultiLineString([[(0, 0), (1, 1)], [(0, 1), (1, 2)]])
+
+    lines = coerce_linestrings(geometry)
+
+    assert len(lines) == 2
+    assert all(isinstance(line, LineString) for line in lines)
+
+
 def test_importer_writes_segments_and_stations_with_fake_session() -> None:
     session = FakeSession()
     importer = OSMImporter(session=session, batch_size=100)
@@ -132,10 +142,41 @@ def test_importer_writes_segments_and_stations_with_fake_session() -> None:
     )
 
     assert stats.segments_created == 1
+    assert stats.chunks_written > 0
+    assert stats.sections_50km_written == 1
     assert stats.stations_created == 1
     assert stats.total_written == 2
     assert len(session.added) == 2
+    assert len(session.added[0].chunks) == stats.chunks_written
+    assert len(session.added[0].sections_50km) == stats.sections_50km_written
     assert session.commit_count == 1
+
+
+def test_importer_writes_parallel_multiline_as_multiple_segments() -> None:
+    session = FakeSession()
+    importer = OSMImporter(session=session, batch_size=100)
+
+    stats = importer.import_features(
+        segment_features=[
+            OSMFeature(
+                osm_id=123,
+                osm_type="way",
+                geometry=MultiLineString([
+                    [(37.0, 55.0), (37.1, 55.0)],
+                    [(37.0, 55.001), (37.1, 55.001)],
+                    [(37.0, 55.002), (37.1, 55.002)],
+                ]),
+                properties={"railway": "rail"},
+            )
+        ],
+        station_features=[],
+    )
+
+    assert stats.segments_created == 3
+    assert [segment.osm_type for segment in session.added] == ["way_part", "way_part", "way_part"]
+    assert [segment.osm_id for segment in session.added] == [123001, 123002, 123003]
+    assert all(segment.chunks for segment in session.added)
+    assert all(segment.sections_50km for segment in session.added)
 
 
 def test_osmium_reader_streams_only_railway_features(tmp_path) -> None:

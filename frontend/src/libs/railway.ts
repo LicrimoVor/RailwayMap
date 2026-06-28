@@ -57,9 +57,27 @@ export function findFeatureBySelection(
   if (!selection) {
     return null;
   }
+  if (
+    selection.section_start_offset_m !== null &&
+    selection.section_start_offset_m !== undefined &&
+    selection.section_end_offset_m !== null &&
+    selection.section_end_offset_m !== undefined
+  ) {
+    const feature = segments.features.find(
+      (item) =>
+        String(item.properties.id) === String(selection.id) &&
+        Number(item.properties.section_start_offset_m) === Number(selection.section_start_offset_m) &&
+        Number(item.properties.section_end_offset_m) === Number(selection.section_end_offset_m)
+    );
+    if (feature) {
+      return feature;
+    }
+  }
   if (selection.section_id !== null && selection.section_id !== undefined) {
     const feature = segments.features.find(
-      (item) => String(item.properties.section_id) === String(selection.section_id)
+      (item) =>
+        String(item.properties.id) === String(selection.id) &&
+        String(item.properties.section_id) === String(selection.section_id)
     );
     if (feature) {
       return feature;

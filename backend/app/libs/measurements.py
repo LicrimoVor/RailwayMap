@@ -42,7 +42,9 @@ def split_linestring_by_length_m(
     for start, end in zip(coordinates, coordinates[1:]):
         start_lon, start_lat = start[:2]
         end_lon, end_lat = end[:2]
-        cumulative.append(cumulative[-1] + haversine_distance_m(start_lon, start_lat, end_lon, end_lat))
+        cumulative.append(
+            cumulative[-1] + haversine_distance_m(start_lon, start_lat, end_lon, end_lat)
+        )
 
     total_length = cumulative[-1]
     if total_length <= 0:
@@ -78,6 +80,40 @@ def split_linestring_by_length_m(
         start_m = end_m
 
     return chunks
+
+
+def discretize_linestring_by_step_m(line: LineString, step_m: float) -> LineString:
+    if step_m <= 0:
+        raise ValueError("step_m must be positive")
+
+    coordinates = list(line.coords)
+    if len(coordinates) < 2:
+        return line
+
+    cumulative = [0.0]
+    for start, end in zip(coordinates, coordinates[1:]):
+        start_lon, start_lat = start[:2]
+        end_lon, end_lat = end[:2]
+        cumulative.append(cumulative[-1] + haversine_distance_m(start_lon, start_lat, end_lon, end_lat))
+
+    total_length = cumulative[-1]
+    if total_length <= 0:
+        return line
+
+    distances = [0.0]
+    distance_m = step_m
+    while distance_m < total_length:
+        distances.append(distance_m)
+        distance_m += step_m
+    distances.append(total_length)
+
+    sampled_coordinates = _dedupe_coordinates(
+        [_point_at_distance(coordinates, cumulative, distance_m) for distance_m in distances]
+    )
+    if len(sampled_coordinates) < 2:
+        return line
+
+    return LineString(sampled_coordinates)
 
 
 def _point_at_distance(

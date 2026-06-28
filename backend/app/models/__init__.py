@@ -5,7 +5,7 @@ from app.models.railway import (
     KilometerPoint,
     RailwaySegment,
     RailwaySegmentChunk,
-    RailwaySegmentSection10km,
+    RailwaySegmentSection50km,
     Station,
 )
 
@@ -19,7 +19,7 @@ __all__ = [
     "RailwayEvent",
     "RailwaySegment",
     "RailwaySegmentChunk",
-    "RailwaySegmentSection10km",
+    "RailwaySegmentSection50km",
     "SegmentParameter",
     "Station",
 ]

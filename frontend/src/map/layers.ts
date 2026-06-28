@@ -7,6 +7,7 @@ export const EVENT_SOURCE_ID = "railway-events";
 export const DEFECT_SOURCE_ID = "railway-defects";
 
 export const RAILWAY_LINE_LAYER_ID = "railway-line";
+export const RAILWAY_CHUNK_GUIDE_CASING_LAYER_ID = "railway-chunk-guide-casing";
 export const RAILWAY_CHUNK_GUIDE_LAYER_ID = "railway-chunk-guide";
 export const RAILWAY_CHUNK_HIT_LAYER_ID = "railway-chunk-hit";
 export const RAILWAY_HIT_LAYER_ID = "railway-hit";

@@ -7,6 +7,7 @@ from typing import Any
 
 from geoalchemy2.shape import to_shape
 from shapely.geometry import mapping
+from shapely.geometry.base import BaseGeometry
 
 
 def json_value(value: Any) -> Any:
@@ -33,6 +34,21 @@ def feature(
     payload: dict[str, Any] = {
         "type": "Feature",
         "geometry": geometry_to_geojson(geometry),
+        "properties": dict(properties),
+    }
+    if feature_id is not None:
+        payload["id"] = feature_id
+    return payload
+
+
+def shape_feature(
+    geometry: BaseGeometry,
+    properties: Mapping[str, Any],
+    feature_id: str | int | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "type": "Feature",
+        "geometry": dict(mapping(geometry)),
         "properties": dict(properties),
     }
     if feature_id is not None:
