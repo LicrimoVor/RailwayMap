@@ -6,6 +6,6 @@ export const STATIONS_CACHE_KEY = "railway-data:stations:v1";
 export const SEGMENT_CHUNKS_CACHE_PREFIX = "segment-chunks:v4";
 
 export const emptyStationCollection: StationFeatureCollection = {
-  type: "FeatureCollection",
-  features: []
+	type: "FeatureCollection",
+	features: [],
 };

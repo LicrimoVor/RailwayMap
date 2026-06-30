@@ -1,28 +1,28 @@
 export type Position = [number, number];
 
 export type LineStringGeometry = {
-  type: "LineString";
-  coordinates: Position[];
+	type: "LineString";
+	coordinates: Position[];
 };
 
 export type MultiLineStringGeometry = {
-  type: "MultiLineString";
-  coordinates: Position[][];
+	type: "MultiLineString";
+	coordinates: Position[][];
 };
 
 export type PointGeometry = {
-  type: "Point";
-  coordinates: Position;
+	type: "Point";
+	coordinates: Position;
 };
 
 export type Feature<TGeometry, TProperties extends Record<string, unknown>> = {
-  type: "Feature";
-  id?: string | number;
-  geometry: TGeometry;
-  properties: TProperties;
+	type: "Feature";
+	id?: string | number;
+	geometry: TGeometry;
+	properties: TProperties;
 };
 
 export type FeatureCollection<TFeature> = {
-  type: "FeatureCollection";
-  features: TFeature[];
+	type: "FeatureCollection";
+	features: TFeature[];
 };

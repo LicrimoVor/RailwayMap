@@ -1,7 +1,6 @@
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import {
   DEFECT_SOURCE_ID,
-  EVENT_SOURCE_ID,
   RAILWAY_CHUNK_SOURCE_ID,
   RAILWAY_SOURCE_ID,
   SELECTED_CHUNKS_SOURCE_ID,
@@ -22,7 +21,6 @@ const sourceIds = [
   STATION_SOURCE_ID,
   SELECTED_SOURCE_ID,
   SELECTED_CHUNKS_SOURCE_ID,
-  EVENT_SOURCE_ID,
   DEFECT_SOURCE_ID
 ] as const;
 
@@ -49,7 +47,6 @@ export function updateChunkSource(map: MapLibreMap, data: RailwayData) {
 }
 
 export function updateAdminSources(map: MapLibreMap, adminData: AdminMapData) {
-  setGeoJsonData(map, EVENT_SOURCE_ID, adminData.events);
   setGeoJsonData(map, DEFECT_SOURCE_ID, adminData.defects);
 }
 

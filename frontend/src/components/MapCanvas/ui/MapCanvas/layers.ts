@@ -2,8 +2,7 @@ import type { ExpressionSpecification, LayerSpecification, Map as MapLibreMap } 
 import {
   DEFECT_LAYER_ID,
   DEFECT_SOURCE_ID,
-  EVENT_LAYER_ID,
-  EVENT_SOURCE_ID,
+  ELECTRIFICATION_LAYER_ID,
   RAILWAY_CHUNK_GUIDE_CASING_LAYER_ID,
   RAILWAY_CHUNK_GUIDE_LAYER_ID,
   RAILWAY_CHUNK_HIT_LAYER_ID,
@@ -82,7 +81,18 @@ const layers: LayerSpecification[] = [
     type: "line",
     source: RAILWAY_SOURCE_ID,
     layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": electrificationLineColor, "line-width": railwayLineWidth, "line-opacity": 0.9 }
+    paint: { "line-color": "#5f6368", "line-width": railwayLineWidth, "line-opacity": 0.72 }
+  },
+  {
+    id: ELECTRIFICATION_LAYER_ID,
+    type: "line",
+    source: RAILWAY_SOURCE_ID,
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: {
+      "line-color": electrificationLineColor,
+      "line-width": ["interpolate", ["linear"], ["zoom"], 3, 2.4, 8, 6],
+      "line-opacity": 0.95
+    }
   },
   {
     id: RAILWAY_SELECTED_LAYER_ID,
@@ -136,17 +146,6 @@ const layers: LayerSpecification[] = [
     paint: { "line-color": "#000000", "line-width": hitLineWidth, "line-opacity": 0 }
   },
   {
-    id: EVENT_LAYER_ID,
-    type: "line",
-    source: EVENT_SOURCE_ID,
-    layout: { "line-cap": "round", "line-join": "round" },
-    paint: {
-      "line-color": ["coalesce", ["get", "event_type_color"], "#eab308"],
-      "line-width": ["interpolate", ["linear"], ["zoom"], 3, 4, 8, 9],
-      "line-opacity": 0.78
-    }
-  },
-  {
     id: DEFECT_LAYER_ID,
     type: "circle",
     source: DEFECT_SOURCE_ID,
@@ -172,14 +171,14 @@ const layers: LayerSpecification[] = [
     id: STATION_LABEL_LAYER_ID,
     type: "symbol",
     source: STATION_SOURCE_ID,
-    minzoom: 4,
+    minzoom: 2.5,
     layout: {
-      "text-field": ["coalesce", ["get", "name"], ""],
-      "text-size": ["interpolate", ["linear"], ["zoom"], 4, 10, 8, 13],
-      "text-offset": [0, 1.15],
-      "text-anchor": "top",
-      "text-allow-overlap": false,
-      "text-optional": true
+      "text-field": ["coalesce", ["get", "name"], ["get", "esr_code"], ["to-string", ["get", "id"]]],
+      "text-size": ["interpolate", ["linear"], ["zoom"], 2.5, 10, 8, 13],
+      "text-offset": [0.9, 0],
+      "text-anchor": "left",
+      "text-allow-overlap": true,
+      "text-ignore-placement": true
     },
     paint: { "text-color": "#111827", "text-halo-color": "#ffffff", "text-halo-width": 1.4 }
   }
