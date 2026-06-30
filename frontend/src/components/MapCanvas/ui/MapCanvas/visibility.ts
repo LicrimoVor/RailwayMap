@@ -34,11 +34,7 @@ export function updateLayerVisibility(
 		ELECTRIFICATION_LAYER_ID,
 		visibleLayers.railways && visibleLayers.electrification,
 	);
-	setLayersVisibility(
-		map,
-		[STATION_LAYER_ID, STATION_LABEL_LAYER_ID],
-		visibleLayers.stations,
-	);
+	setLayerVisibility(map, STATION_LAYER_ID, visibleLayers.stations);
 	setLayerVisibility(map, DEFECT_LAYER_ID, visibleLayers.defects);
 }
 

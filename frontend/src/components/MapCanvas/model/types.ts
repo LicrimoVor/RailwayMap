@@ -17,4 +17,5 @@ export type MapCanvasProps = {
   onSelectSegment: (segment: RailwaySegmentProperties | null) => void;
   onToggleChunk: (chunk: RailwayChunkProperties) => void;
   onClearChunks: () => void;
+  onRoadRenderStateChange: (isRendering: boolean) => void;
 };

@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminPanel } from "../../../components/AdminPanel";
 import { LayerPanel } from "../../../components/LayerPanel";
@@ -11,12 +11,13 @@ import { buildRailwaySummary } from "../../../libs/railway";
 import {
 	emptyStationCollection,
 	fetchSegmentChunksForSection,
+	viewportRequestKey,
 } from "../../../services/railwayApi";
 import { useMapStore } from "../../../store/mapStore";
 import type { AdminMapData } from "../../../types/admin";
 import type {
-	RailwayChunkFeatureCollection,
-	RailwayFeatureCollection,
+	RailwayMapViewport,
+	RailwaySegmentProperties,
 } from "../../../types/railway";
 import { MapLoadingOverlay } from "./MapLoadingOverlay";
 import { useQueryMap } from "../libs/useQueryMap";
@@ -25,16 +26,11 @@ const emptyAdminData: AdminMapData = {
 	events: { type: "FeatureCollection", features: [] },
 	defects: { type: "FeatureCollection", features: [] },
 };
-const emptyRailwaySegments: RailwayFeatureCollection = {
-	type: "FeatureCollection",
-	features: [],
-};
-const emptyRailwayChunks: RailwayChunkFeatureCollection = {
-	type: "FeatureCollection",
-	features: [],
-};
 
 export const MapPage = memo(() => {
+	const viewportKeyRef = useRef<string | null>(null);
+	const [viewport, setViewport] = useState<RailwayMapViewport | null>(null);
+	const [isRoadRendering, setIsRoadRendering] = useState(false);
 	const {
 		railwayData,
 		isFallback,
@@ -42,7 +38,7 @@ export const MapPage = memo(() => {
 		isRoadLoading,
 		apiError,
 		refetch,
-	} = useRailwayData();
+	} = useRailwayData(viewport);
 	const [leftPanelOpen, setLeftPanelOpen] = useState(false);
 	const [rightPanelOpen, setRightPanelOpen] = useState(false);
 	const {
@@ -56,7 +52,7 @@ export const MapPage = memo(() => {
 		setSelectedSegment,
 	} = useMapStore();
 	const { stationData, defectData, defectQuery, stationQuery } =
-		useQueryMap();
+		useQueryMap(viewport);
 
 	const adminMapData = useMemo<AdminMapData>(
 		() => ({
@@ -79,26 +75,21 @@ export const MapPage = memo(() => {
 			selectedSegment?.section_start_offset_m,
 			selectedSegment?.section_end_offset_m,
 		],
-		queryFn: () => fetchSegmentChunksForSection(selectedSegment!),
+		queryFn: ({ signal }) =>
+			fetchSegmentChunksForSection(selectedSegment!, signal),
 		enabled: selectedSectionCanLoadChunks,
 		staleTime: 60_000,
 	});
 	const mapRailwayData = useMemo(
 		() => ({
 			...railwayData,
-			segments: visibleLayers.railways
-				? railwayData.segments
-				: emptyRailwaySegments,
-			stations: visibleLayers.stations
+			stations: stationData
 				? (stationData ?? emptyStationCollection)
 				: emptyStationCollection,
 			summary: buildRailwaySummary(
 				railwayData.segments,
 				stationData ?? emptyStationCollection,
 			),
-			chunks: visibleLayers.railways
-				? (chunkQuery.data ?? emptyRailwayChunks)
-				: emptyRailwayChunks,
 		}),
 		[
 			railwayData,
@@ -108,18 +99,62 @@ export const MapPage = memo(() => {
 			visibleLayers.stations,
 		],
 	);
-	const handleViewportChange = useCallback(() => undefined, []);
+	const handleViewportChange = useCallback(
+		(nextViewport: RailwayMapViewport) => {
+			const nextKey = viewportRequestKey(nextViewport);
+			if (nextKey === viewportKeyRef.current) {
+				return;
+			}
 
-	const stationLoading =
-		visibleLayers.stations &&
-		stationData === null &&
-		stationQuery.isLoading;
-	const defectLoading =
-		visibleLayers.defects && defectData === null && defectQuery.isLoading;
+			viewportKeyRef.current = nextKey;
+			setViewport(nextViewport);
+		},
+		[],
+	);
+	const handleSelectSegment = useCallback(
+		(segment: RailwaySegmentProperties | null) => {
+			setSelectedSegment(segment);
+			if (segment) {
+				setRightPanelOpen(true);
+			}
+		},
+		[setSelectedSegment],
+	);
+	const handleRefresh = useCallback(() => {
+		if (viewport) {
+			const requests: Array<Promise<unknown>> = [
+				refetch(),
+				stationQuery.refetch(),
+				defectQuery.refetch(),
+			];
+
+			if (selectedSectionCanLoadChunks) {
+				requests.push(chunkQuery.refetch());
+			}
+
+			void Promise.all(requests);
+		}
+	}, [
+		chunkQuery,
+		defectQuery,
+		refetch,
+		selectedSectionCanLoadChunks,
+		stationQuery,
+		viewport,
+	]);
+
+	const stationLoading = stationQuery.isFetching;
+	const defectLoading = defectQuery.isFetching;
+	const roadLoading = isRoadLoading || isRoadRendering;
+	const pageLoading = isLoading || isRoadRendering;
 	const layerApiError = apiError ?? stationQuery.error ?? defectQuery.error;
 
 	return (
-		<main className="relative h-full w-full overflow-hidden">
+		<main
+			className="relative h-full w-full overflow-hidden"
+			data-detail-panel-open={rightPanelOpen}
+			data-layer-panel-open={leftPanelOpen}
+		>
 			<MapCanvas
 				data={mapRailwayData}
 				adminData={adminMapData}
@@ -127,18 +162,14 @@ export const MapPage = memo(() => {
 				selectedSegment={selectedSegment}
 				selectedChunks={selectedChunks}
 				onViewportChange={handleViewportChange}
-				onSelectSegment={(segment) => {
-					setSelectedSegment(segment);
-					if (segment) {
-						setRightPanelOpen(true);
-					}
-				}}
+				onSelectSegment={handleSelectSegment}
 				onToggleChunk={toggleSelectedChunk}
 				onClearChunks={clearSelectedChunks}
+				onRoadRenderStateChange={setIsRoadRendering}
 			/>
 
 			<MapLoadingOverlay
-				roadLoading={isRoadLoading}
+				roadLoading={roadLoading}
 				stationLoading={stationLoading}
 				defectLoading={defectLoading}
 				chunkLoading={chunkQuery.isLoading}
@@ -147,12 +178,12 @@ export const MapPage = memo(() => {
 			<div className="pointer-events-none absolute inset-x-3 top-3 z-10 md:inset-x-5">
 				<TopBar
 					isFallback={isFallback}
-					isLoading={isLoading}
+					isLoading={pageLoading}
 					leftPanelOpen={leftPanelOpen}
 					rightPanelOpen={rightPanelOpen}
 					onOpenLeftPanel={() => setLeftPanelOpen(true)}
 					onOpenRightPanel={() => setRightPanelOpen(true)}
-					onRefresh={() => void refetch()}
+					onRefresh={handleRefresh}
 				/>
 			</div>
 

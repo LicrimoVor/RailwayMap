@@ -41,29 +41,15 @@ export const MapLoadingOverlay = memo(
 		}
 
 		return (
-			<div className="pointer-events-none absolute bottom-3 left-1/2 z-10 w-[min(26rem,calc(100%-1.5rem))] -translate-x-1/2 rounded-lg border border-neutral-200 bg-white/95 p-3 shadow-panel backdrop-blur md:bottom-5">
-				<div className="space-y-2">
-					{steps.map((step) => (
-						<div key={step.key} className="flex items-center gap-3">
-							<span
-								className={`h-2.5 w-2.5 rounded-full ${
-									step.active
-										? "animate-pulse bg-red-700"
-										: "bg-neutral-300"
-								}`}
-							/>
-							<div className="h-2 min-w-0 flex-1 overflow-hidden rounded bg-neutral-100">
-								<div
-									className={`h-full rounded bg-red-700 transition-all ${
-										step.active
-											? "w-2/3 animate-pulse"
-											: "w-full opacity-25"
-									}`}
-								/>
-							</div>
-							<span className="w-28 shrink-0 text-right text-xs text-neutral-700">
-								{step.label}
-							</span>
+			<div className="pointer-events-none absolute bottom-3 left-1/2 z-10 w-[min(22rem,calc(100%-1.5rem))] -translate-x-1/2 rounded-lg border border-neutral-200 bg-white/95 p-3 shadow-panel backdrop-blur md:bottom-5">
+				<div className="space-y-3">
+					{activeSteps.map((step) => (
+						<div
+							className="flex items-center max-w-full gap-2"
+							key={step.key}
+						>
+							<p className="shrink-0">{step.label}</p>{" "}
+							<div className="animate-pulse h-3 w-full rounded bg-neutral-400" />{" "}
 						</div>
 					))}
 				</div>

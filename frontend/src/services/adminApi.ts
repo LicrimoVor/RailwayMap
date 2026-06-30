@@ -1,4 +1,4 @@
-import { apiClient } from "./api";
+import { apiClient, isCanceledRequest } from "./api";
 import type {
 	AdminMapData,
 	CreateDefectInput,
@@ -12,7 +12,7 @@ import type {
 } from "../types/admin";
 import type { RailwayMapViewport } from "../types/railway";
 import { readCachedValue, writeCachedValue } from "../libs/indexedDbCache";
-import { bboxParamsForViewport } from "./railwayApi";
+import { bboxCacheKey, bboxParamsForViewport } from "./railwayApi/viewport";
 
 const emptyEvents: RailwayEventCollection = {
 	type: "FeatureCollection",
@@ -29,23 +29,27 @@ const SEGMENT_ADMIN_DATA_CACHE_PREFIX = "segment-admin-data:v2";
 
 export async function fetchEventsForViewport(
 	viewport: RailwayMapViewport,
+	signal?: AbortSignal,
 ): Promise<RailwayEventCollection> {
 	return fetchViewportCollection(
 		viewport,
 		"/events",
 		ADMIN_EVENTS_CACHE_PREFIX,
 		asEventCollection,
+		signal,
 	);
 }
 
 export async function fetchDefectsForViewport(
 	viewport: RailwayMapViewport,
+	signal?: AbortSignal,
 ): Promise<DefectCollection> {
 	return fetchViewportCollection(
 		viewport,
 		"/defects",
 		ADMIN_DEFECTS_CACHE_PREFIX,
 		asDefectCollection,
+		signal,
 	);
 }
 
@@ -64,6 +68,14 @@ export async function fetchDefectsLayer(): Promise<DefectCollection> {
 		}
 		throw error;
 	}
+}
+
+export async function loadCachedDefects(): Promise<DefectCollection | null> {
+	return (
+		(await readCachedValue<DefectCollection>(
+			`${ADMIN_DEFECTS_CACHE_PREFIX}:last`,
+		)) ?? (await readCachedValue<DefectCollection>(ADMIN_DEFECTS_LAYER_CACHE_KEY))
+	);
 }
 
 export async function fetchSegmentAdminData(
@@ -131,18 +143,26 @@ async function fetchViewportCollection<T>(
 	endpoint: string,
 	cachePrefix: string,
 	normalize: (value: unknown) => T,
+	signal?: AbortSignal,
 ): Promise<T> {
 	const bboxParams = bboxParamsForViewport(viewport);
-	const cacheKey = viewportCacheKey(cachePrefix, bboxParams);
+	const cacheKey = bboxCacheKey(cachePrefix, bboxParams);
 	const lastCacheKey = `${cachePrefix}:last`;
 
 	try {
-		const response = await apiClient.get(endpoint, { params: bboxParams });
+		const response = await apiClient.get(endpoint, {
+			params: bboxParams,
+			signal,
+		});
 		const data = normalize(response.data);
 		void writeCachedValue(cacheKey, data);
 		void writeCachedValue(lastCacheKey, data);
 		return data;
 	} catch (error) {
+		if (isCanceledRequest(error)) {
+			throw error;
+		}
+
 		const cached =
 			(await readCachedValue<T>(cacheKey)) ??
 			(await readCachedValue<T>(lastCacheKey));
@@ -169,19 +189,6 @@ function isFeatureCollection(
 	value: unknown,
 ): value is { type: "FeatureCollection" } {
 	return typeof value === "object" && value !== null && "type" in value;
-}
-
-function viewportCacheKey(
-	prefix: string,
-	bboxParams: ReturnType<typeof bboxParamsForViewport>,
-): string {
-	return [
-		prefix,
-		bboxParams.min_lon.toFixed(2),
-		bboxParams.min_lat.toFixed(2),
-		bboxParams.max_lon.toFixed(2),
-		bboxParams.max_lat.toFixed(2),
-	].join(":");
 }
 
 function segmentAdminDataCacheKey(segmentId: number): string {

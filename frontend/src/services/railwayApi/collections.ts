@@ -8,6 +8,7 @@ export type ApiCollection<T> =
 export async function fetchCollection(
 	endpoint: string,
 	params: Record<string, number> = {},
+	signal?: AbortSignal,
 ): Promise<ApiCollection<Record<string, unknown>>> {
 	const rows: Record<string, unknown>[] = [];
 	let offset = 0;
@@ -16,6 +17,7 @@ export async function fetchCollection(
 	while (true) {
 		const response = await apiClient.get(endpoint, {
 			params: { ...params, limit: PAGE_SIZE, offset },
+			signal,
 		});
 		const payload = response.data as ApiCollection<Record<string, unknown>>;
 		const pageRows = collectionRows(payload);
