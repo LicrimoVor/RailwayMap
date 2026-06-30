@@ -14,5 +14,6 @@ export const RAILWAY_HIT_LAYER_ID = "railway-hit";
 export const RAILWAY_SELECTED_LAYER_ID = "railway-selected";
 export const RAILWAY_SELECTED_CHUNKS_LAYER_ID = "railway-selected-chunks";
 export const STATION_LAYER_ID = "station-circle";
+export const STATION_LABEL_LAYER_ID = "station-label";
 export const EVENT_LAYER_ID = "event-line";
 export const DEFECT_LAYER_ID = "defect-circle";

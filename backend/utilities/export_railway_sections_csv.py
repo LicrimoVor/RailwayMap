@@ -15,7 +15,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import selectinload, sessionmaker
 
 from app.core.config import get_settings
-from app.models.railway import RailwaySegmentChunk, RailwaySegmentSection50km
+from app.models.railway import RailwaySegmentChunk, RailwaySegmentSection10km
 
 CSV_FIELDS = [
     "section_type",
@@ -51,7 +51,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--database-url", default=None, help="SQLAlchemy database URL.")
     parser.add_argument(
         "--kind",
-        choices=("all", "100m", "50km"),
+        choices=("all", "100m", "10km"),
         default="all",
         help="Which section table to export.",
     )
@@ -72,8 +72,8 @@ def main() -> int:
         writer = csv.DictWriter(file, fieldnames=CSV_FIELDS)
         writer.writeheader()
 
-        if args.kind in ("all", "50km"):
-            for row in iter_50km_rows(session, include_geometry=not args.no_geometry):
+        if args.kind in ("all", "10km"):
+            for row in iter_10km_rows(session, include_geometry=not args.no_geometry):
                 writer.writerow(row)
                 row_count += 1
 
@@ -86,15 +86,15 @@ def main() -> int:
     return 0
 
 
-def iter_50km_rows(session, include_geometry: bool) -> Iterable[dict[str, object]]:
+def iter_10km_rows(session, include_geometry: bool) -> Iterable[dict[str, object]]:
     statement = (
-        select(RailwaySegmentSection50km)
-        .options(selectinload(RailwaySegmentSection50km.segment))
-        .order_by(RailwaySegmentSection50km.segment_id, RailwaySegmentSection50km.section_index)
+        select(RailwaySegmentSection10km)
+        .options(selectinload(RailwaySegmentSection10km.segment))
+        .order_by(RailwaySegmentSection10km.segment_id, RailwaySegmentSection10km.section_index)
     )
     for section in session.scalars(statement).yield_per(2_000):
         yield section_row(
-            section_type="50km",
+            section_type="10km",
             section_id=section.id,
             segment=section.segment,
             index=section.section_index,

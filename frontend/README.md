@@ -31,14 +31,14 @@ segments so map interactions remain usable.
 Railway and station data is loaded page by page, so large imports are no longer
 truncated to the first API page.
 
-The map renders `/api/segment-sections-50km` for the coarse railway layer. It
+The map renders `/api/segment-sections-10km` for the coarse railway layer. It
 loads 100 meter chunks from `/api/segment-chunks` only after a user clicks a
 coarse section. The OSM importer writes both derived tables immediately; rebuild
 them manually only when needed:
 
 ```powershell
 cd ../backend
-.\.venv\Scripts\python.exe utilities\rebuild_segment_sections_50km.py --section-length-m 50000
+.\.venv\Scripts\python.exe utilities\rebuild_segment_sections_10km.py --section-length-m 10000
 .\.venv\Scripts\python.exe utilities\rebuild_segment_chunks.py --chunk-length-m 100
 ```
 

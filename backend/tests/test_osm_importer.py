@@ -143,12 +143,12 @@ def test_importer_writes_segments_and_stations_with_fake_session() -> None:
 
     assert stats.segments_created == 1
     assert stats.chunks_written > 0
-    assert stats.sections_50km_written == 1
+    assert stats.sections_10km_written > 0
     assert stats.stations_created == 1
     assert stats.total_written == 2
     assert len(session.added) == 2
     assert len(session.added[0].chunks) == stats.chunks_written
-    assert len(session.added[0].sections_50km) == stats.sections_50km_written
+    assert len(session.added[0].sections_10km) == stats.sections_10km_written
     assert session.commit_count == 1
 
 
@@ -176,7 +176,7 @@ def test_importer_writes_parallel_multiline_as_multiple_segments() -> None:
     assert [segment.osm_type for segment in session.added] == ["way_part", "way_part", "way_part"]
     assert [segment.osm_id for segment in session.added] == [123001, 123002, 123003]
     assert all(segment.chunks for segment in session.added)
-    assert all(segment.sections_50km for segment in session.added)
+    assert all(segment.sections_10km for segment in session.added)
 
 
 def test_osmium_reader_streams_only_railway_features(tmp_path) -> None:

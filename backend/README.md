@@ -64,7 +64,7 @@ Map reads:
 
 - `GET /api/segments`
 - `GET /api/segments/{segment_id}`
-- `GET /api/segment-sections-50km`
+- `GET /api/segment-sections-10km`
 - `GET /api/stations`
 - `GET /api/events`
 - `GET /api/defects`
@@ -80,21 +80,21 @@ Admin writes:
 `/api/segments`, `/api/stations`, `/api/events`, and `/api/defects` return
 GeoJSON feature collections for direct use by MapLibre.
 Map endpoints accept `min_lon`, `min_lat`, `max_lon`, and `max_lat` viewport
-filters. `GET /api/segment-sections-50km` returns the coarse 50 km render layer
+filters. `GET /api/segment-sections-10km` returns the coarse 10 km render layer
 for the farthest zoom levels.
 
 Fine-grained selection:
 
 - `GET /api/segment-chunks`
 - `POST /api/segment-chunks/rebuild`
-- `GET /api/segment-sections-50km`
-- `POST /api/segment-sections-50km/rebuild`
+- `GET /api/segment-sections-10km`
+- `POST /api/segment-sections-10km/rebuild`
 
-The OSM importer writes 50 km render sections and 100 meter chunks immediately.
+The OSM importer writes 10 km render sections and 100 meter chunks immediately.
 Use rebuild utilities only when you need to regenerate derived rows:
 
 ```powershell
-python utilities/rebuild_segment_sections_50km.py --section-length-m 50000
+python utilities/rebuild_segment_sections_10km.py --section-length-m 10000
 python utilities/rebuild_segment_chunks.py --chunk-length-m 100
 python utilities/remove_duplicate_segments_chunks.py
 ```

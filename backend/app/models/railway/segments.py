@@ -56,7 +56,7 @@ class RailwaySegment(TimestampMixin, Base):
         back_populates="segment",
         cascade="all, delete-orphan",
     )
-    sections_50km: Mapped[list["RailwaySegmentSection50km"]] = relationship(
+    sections_10km: Mapped[list["RailwaySegmentSection10km"]] = relationship(
         back_populates="segment",
         cascade="all, delete-orphan",
     )
@@ -96,16 +96,16 @@ class RailwaySegmentChunk(Base):
     segment: Mapped["RailwaySegment"] = relationship(back_populates="chunks")
 
 
-class RailwaySegmentSection50km(Base):
-    __tablename__ = "railway_segment_sections_50km"
+class RailwaySegmentSection10km(Base):
+    __tablename__ = "railway_segment_sections_10km"
     __table_args__ = (
         UniqueConstraint(
             "segment_id",
             "section_index",
-            name="uq_railway_segment_sections_50km_segment_index",
+            name="uq_railway_segment_sections_10km_segment_index",
         ),
         Index(
-            "ix_railway_segment_sections_50km_segment_offsets",
+            "ix_railway_segment_sections_10km_segment_offsets",
             "segment_id",
             "start_offset_m",
             "end_offset_m",
@@ -127,4 +127,4 @@ class RailwaySegmentSection50km(Base):
         nullable=False,
     )
 
-    segment: Mapped["RailwaySegment"] = relationship(back_populates="sections_50km")
+    segment: Mapped["RailwaySegment"] = relationship(back_populates="sections_10km")

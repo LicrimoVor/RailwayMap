@@ -54,7 +54,7 @@ def main() -> int:
         f"segments updated={stats.segments_updated}, "
         f"segments skipped={stats.segments_skipped}, "
         f"chunks written={stats.chunks_written}, "
-        f"50km sections written={stats.sections_50km_written}, "
+        f"10km sections written={stats.sections_10km_written}, "
         f"stations created={stats.stations_created}, "
         f"stations updated={stats.stations_updated}, "
         f"stations skipped={stats.stations_skipped}"

@@ -11,7 +11,7 @@ class DeduplicationResult:
     duplicate_segments_by_osm_id: int
     duplicate_segments_by_geometry: int
     duplicate_chunks: int
-    duplicate_sections_50km: int
+    duplicate_sections_10km: int
 
     @property
     def total(self) -> int:
@@ -19,7 +19,7 @@ class DeduplicationResult:
             self.duplicate_segments_by_osm_id
             + self.duplicate_segments_by_geometry
             + self.duplicate_chunks
-            + self.duplicate_sections_50km
+            + self.duplicate_sections_10km
         )
 
 
@@ -80,7 +80,7 @@ FROM ranked
 WHERE row_number > 1
 """
 
-SECTION_50KM_DUPLICATES = """
+SECTION_10KM_DUPLICATES = """
 WITH ranked AS (
     SELECT
         id,
@@ -92,7 +92,7 @@ WITH ranked AS (
                 encode(ST_AsEWKB(geometry), 'hex')
             ORDER BY id
         ) AS row_number
-    FROM railway_segment_sections_50km
+    FROM railway_segment_sections_10km
 )
 SELECT id
 FROM ranked
@@ -105,12 +105,12 @@ def remove_duplicate_railway_rows(
     *,
     include_segments: bool = True,
     include_chunks: bool = True,
-    include_sections_50km: bool = True,
+    include_sections_10km: bool = True,
     dry_run: bool = True,
 ) -> DeduplicationResult:
     duplicate_chunks = _count_duplicate_ids(session, CHUNK_DUPLICATES) if include_chunks else 0
-    duplicate_sections_50km = (
-        _count_duplicate_ids(session, SECTION_50KM_DUPLICATES) if include_sections_50km else 0
+    duplicate_sections_10km = (
+        _count_duplicate_ids(session, SECTION_10KM_DUPLICATES) if include_sections_10km else 0
     )
     duplicate_segments_by_osm_id = (
         _count_duplicate_ids(session, SEGMENT_SOURCE_DUPLICATES) if include_segments else 0
@@ -122,8 +122,8 @@ def remove_duplicate_railway_rows(
     if not dry_run:
         if include_chunks:
             _delete_duplicate_ids(session, "railway_segment_chunks", CHUNK_DUPLICATES)
-        if include_sections_50km:
-            _delete_duplicate_ids(session, "railway_segment_sections_50km", SECTION_50KM_DUPLICATES)
+        if include_sections_10km:
+            _delete_duplicate_ids(session, "railway_segment_sections_10km", SECTION_10KM_DUPLICATES)
         if include_segments:
             _delete_duplicate_ids(session, "railway_segments", SEGMENT_SOURCE_DUPLICATES)
             _delete_duplicate_ids(session, "railway_segments", SEGMENT_GEOMETRY_DUPLICATES)
@@ -132,7 +132,7 @@ def remove_duplicate_railway_rows(
         duplicate_segments_by_osm_id=duplicate_segments_by_osm_id,
         duplicate_segments_by_geometry=duplicate_segments_by_geometry,
         duplicate_chunks=duplicate_chunks,
-        duplicate_sections_50km=duplicate_sections_50km,
+        duplicate_sections_10km=duplicate_sections_10km,
     )
 
 

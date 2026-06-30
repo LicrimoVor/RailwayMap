@@ -11,12 +11,12 @@ from app.libs.measurements import split_linestring_by_length_m
 from app.models.railway import (
     RailwaySegment,
     RailwaySegmentChunk,
-    RailwaySegmentSection50km,
+    RailwaySegmentSection10km,
 )
 
 
 DEFAULT_CHUNK_LENGTH_M = 100.0
-DEFAULT_SECTION_LENGTH_M = 50_000.0
+DEFAULT_SECTION_LENGTH_M = 10_000.0
 
 
 def segment_chunks_from_line(
@@ -38,12 +38,12 @@ def segment_chunks_from_line(
     ]
 
 
-def segment_sections_50km_from_line(
+def segment_sections_10km_from_line(
     line: LineString,
     section_length_m: float = DEFAULT_SECTION_LENGTH_M,
-) -> list[RailwaySegmentSection50km]:
+) -> list[RailwaySegmentSection10km]:
     return [
-        RailwaySegmentSection50km(
+        RailwaySegmentSection10km(
             section_index=section_index,
             start_offset_m=_decimal_m(start_m),
             end_offset_m=_decimal_m(end_m),
@@ -98,7 +98,7 @@ def rebuild_segment_chunks(
     return created
 
 
-def rebuild_segment_sections_50km(
+def rebuild_segment_sections_10km(
     session: Session,
     section_length_m: float = DEFAULT_SECTION_LENGTH_M,
     segment_ids: list[int] | None = None,
@@ -106,7 +106,7 @@ def rebuild_segment_sections_50km(
 ) -> int:
     return _rebuild_segment_sections(
         session,
-        section_model=RailwaySegmentSection50km,
+        section_model=RailwaySegmentSection10km,
         section_length_m=section_length_m,
         segment_ids=segment_ids,
         flush_every=flush_every,

@@ -26,9 +26,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-segments", action="store_true", help="Do not check railway_segments.")
     parser.add_argument("--skip-chunks", action="store_true", help="Do not check railway_segment_chunks.")
     parser.add_argument(
-        "--skip-sections-50km",
+        "--skip-sections-10km",
         action="store_true",
-        help="Do not check railway_segment_sections_50km.",
+        help="Do not check railway_segment_sections_10km.",
     )
     return parser.parse_args()
 
@@ -44,7 +44,7 @@ def main() -> int:
             session,
             include_segments=not args.skip_segments,
             include_chunks=not args.skip_chunks,
-            include_sections_50km=not args.skip_sections_50km,
+            include_sections_10km=not args.skip_sections_10km,
             dry_run=not args.apply,
         )
         if args.apply:
@@ -62,7 +62,7 @@ def print_result(result: DeduplicationResult, *, applied: bool) -> None:
     print(f"  segments by OSM id: {result.duplicate_segments_by_osm_id}")
     print(f"  segments by exact geometry: {result.duplicate_segments_by_geometry}")
     print(f"  chunks: {result.duplicate_chunks}")
-    print(f"  50 km sections: {result.duplicate_sections_50km}")
+    print(f"  10 km sections: {result.duplicate_sections_10km}")
     if not applied:
         print("Dry run only. Re-run with --apply to delete these rows.")
 

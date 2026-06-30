@@ -1,8 +1,8 @@
 import type {
-  RailwayFeature,
   RailwayChunkFeature,
-  RailwayFeatureCollection,
   RailwayChunkProperties,
+  RailwayFeature,
+  RailwayFeatureCollection,
   RailwaySegmentProperties,
   RailwaySummary,
   StationFeatureCollection
@@ -29,7 +29,9 @@ export function buildRailwaySummary(
   };
 }
 
-export function selectedChunkPropertiesToFeatures(chunks: RailwayChunkProperties[]): RailwayChunkFeature[] {
+export function selectedChunkPropertiesToFeatures(
+  chunks: RailwayChunkProperties[]
+): RailwayChunkFeature[] {
   return chunks
     .filter((chunk) => chunk.geometry?.type === "LineString")
     .map((chunk) => ({
@@ -57,33 +59,9 @@ export function findFeatureBySelection(
   if (!selection) {
     return null;
   }
-  if (
-    selection.section_start_offset_m !== null &&
-    selection.section_start_offset_m !== undefined &&
-    selection.section_end_offset_m !== null &&
-    selection.section_end_offset_m !== undefined
-  ) {
-    const feature = segments.features.find(
-      (item) =>
-        String(item.properties.id) === String(selection.id) &&
-        Number(item.properties.section_start_offset_m) === Number(selection.section_start_offset_m) &&
-        Number(item.properties.section_end_offset_m) === Number(selection.section_end_offset_m)
-    );
-    if (feature) {
-      return feature;
-    }
-  }
-  if (selection.section_id !== null && selection.section_id !== undefined) {
-    const feature = segments.features.find(
-      (item) =>
-        String(item.properties.id) === String(selection.id) &&
-        String(item.properties.section_id) === String(selection.section_id)
-    );
-    if (feature) {
-      return feature;
-    }
-  }
-  return findFeatureById(segments, selection.id);
+
+  const feature = findSectionFeature(segments, selection);
+  return feature ?? findFeatureById(segments, selection.id);
 }
 
 export function formatLength(value: RailwaySegmentProperties["length_m"]): string {
@@ -102,6 +80,44 @@ export function displayValue(value: unknown): string {
     return "н/д";
   }
   return String(value);
+}
+
+function findSectionFeature(
+  segments: RailwayFeatureCollection,
+  selection: RailwaySegmentProperties
+): RailwayFeature | null {
+  if (hasSectionOffsets(selection)) {
+    const feature = segments.features.find(
+      (item) =>
+        String(item.properties.id) === String(selection.id) &&
+        Number(item.properties.section_start_offset_m) === Number(selection.section_start_offset_m) &&
+        Number(item.properties.section_end_offset_m) === Number(selection.section_end_offset_m)
+    );
+    if (feature) {
+      return feature;
+    }
+  }
+
+  if (selection.section_id === null || selection.section_id === undefined) {
+    return null;
+  }
+
+  return (
+    segments.features.find(
+      (item) =>
+        String(item.properties.id) === String(selection.id) &&
+        String(item.properties.section_id) === String(selection.section_id)
+    ) ?? null
+  );
+}
+
+function hasSectionOffsets(selection: RailwaySegmentProperties): boolean {
+  return (
+    selection.section_start_offset_m !== null &&
+    selection.section_start_offset_m !== undefined &&
+    selection.section_end_offset_m !== null &&
+    selection.section_end_offset_m !== undefined
+  );
 }
 
 function electrificationLabel(value: string): string {

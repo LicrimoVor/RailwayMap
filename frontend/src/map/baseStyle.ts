@@ -1,10 +1,12 @@
 import type { StyleSpecification } from "maplibre-gl";
+import russiaBlankMapUrl from "../assets/Blank_map_of_Russia-gray.svg?url";
 
 const OSM_TILE_PROBE_URL = "https://tile.openstreetmap.org/0/0/0.png";
 const TILE_PROBE_TIMEOUT_MS = 2_500;
 
 export const osmRasterMapStyle: StyleSpecification = {
   version: 8,
+  glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   sources: {
     osm: {
       type: "raster",
@@ -24,41 +26,17 @@ export const osmRasterMapStyle: StyleSpecification = {
 
 export const localRussiaMapStyle: StyleSpecification = {
   version: 8,
+  glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   sources: {
-    "russia-extent": {
-      type: "geojson",
-      data: {
-        type: "FeatureCollection",
-        features: [
-          {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "Polygon",
-              coordinates: [
-                [
-                  [19.6, 54.4],
-                  [28.2, 69.5],
-                  [47.0, 80.2],
-                  [79.0, 81.8],
-                  [112.0, 77.8],
-                  [143.0, 73.0],
-                  [169.0, 66.0],
-                  [179.5, 61.0],
-                  [164.0, 50.0],
-                  [135.0, 43.0],
-                  [110.0, 49.0],
-                  [89.0, 49.2],
-                  [60.0, 50.0],
-                  [40.0, 45.0],
-                  [28.0, 46.0],
-                  [19.6, 54.4]
-                ]
-              ]
-            }
-          }
-        ]
-      }
+    "russia-blank-map": {
+      type: "image",
+      url: russiaBlankMapUrl,
+      coordinates: [
+        [18, 83],
+        [180, 83],
+        [180, 40],
+        [18, 40]
+      ]
     }
   },
   layers: [
@@ -70,22 +48,11 @@ export const localRussiaMapStyle: StyleSpecification = {
       }
     },
     {
-      id: "russia-fill",
-      type: "fill",
-      source: "russia-extent",
+      id: "russia-blank-map",
+      type: "raster",
+      source: "russia-blank-map",
       paint: {
-        "fill-color": "#f8faf7",
-        "fill-opacity": 0.96
-      }
-    },
-    {
-      id: "russia-outline",
-      type: "line",
-      source: "russia-extent",
-      paint: {
-        "line-color": "#9da79d",
-        "line-width": 1,
-        "line-opacity": 0.85
+        "raster-opacity": 0.92
       }
     }
   ]

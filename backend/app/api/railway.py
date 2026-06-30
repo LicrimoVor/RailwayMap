@@ -12,7 +12,7 @@ from app.libs.measurements import discretize_linestring_by_step_m
 from app.models.railway import (
     RailwaySegment,
     RailwaySegmentChunk,
-    RailwaySegmentSection50km,
+    RailwaySegmentSection10km,
     Station,
 )
 
@@ -55,7 +55,7 @@ CHUNK_FIELDS = (
     "length_m",
 )
 
-SECTION_50KM_FIELDS = (
+SECTION_10KM_FIELDS = (
     "id",
     "segment_id",
     "section_index",
@@ -125,8 +125,8 @@ def list_segment_chunks(
     return feature_collection([chunk_feature(chunk) for chunk in chunks])
 
 
-@router.get("/segment-sections-50km")
-def list_segment_sections_50km(
+@router.get("/segment-sections-10km")
+def list_segment_sections_10km(
     segment_id: int | None = Query(default=None),
     min_lon: float | None = Query(default=None, ge=-180, le=180),
     min_lat: float | None = Query(default=None, ge=-90, le=90),
@@ -137,21 +137,21 @@ def list_segment_sections_50km(
     session: Session = Depends(get_session),
 ) -> dict[str, object]:
     statement = (
-        select(RailwaySegmentSection50km)
-        .options(selectinload(RailwaySegmentSection50km.segment))
+        select(RailwaySegmentSection10km)
+        .options(selectinload(RailwaySegmentSection10km.segment))
         .order_by(
-            RailwaySegmentSection50km.segment_id,
-            RailwaySegmentSection50km.section_index,
+            RailwaySegmentSection10km.segment_id,
+            RailwaySegmentSection10km.section_index,
         )
     )
     if segment_id is not None:
-        statement = statement.where(RailwaySegmentSection50km.segment_id == segment_id)
+        statement = statement.where(RailwaySegmentSection10km.segment_id == segment_id)
     bbox = normalize_bbox(min_lon, min_lat, max_lon, max_lat)
     if bbox is not None:
-        statement = with_bbox_filter(statement, RailwaySegmentSection50km.geometry, bbox)
+        statement = with_bbox_filter(statement, RailwaySegmentSection10km.geometry, bbox)
 
     sections = session.scalars(statement.offset(offset).limit(limit)).all()
-    return feature_collection([section_50km_feature(section) for section in sections])
+    return feature_collection([section_10km_feature(section) for section in sections])
 
 
 @router.get("/stations")
@@ -190,8 +190,8 @@ def chunk_feature(chunk: RailwaySegmentChunk) -> dict[str, object]:
     return feature(chunk.geometry, properties, feature_id=chunk.id)
 
 
-def section_50km_feature(section: RailwaySegmentSection50km) -> dict[str, object]:
-    return section_feature(section, SECTION_50KM_FIELDS)
+def section_10km_feature(section: RailwaySegmentSection10km) -> dict[str, object]:
+    return section_feature(section, SECTION_10KM_FIELDS)
 
 
 def section_feature(section, section_fields: tuple[str, ...]) -> dict[str, object]:

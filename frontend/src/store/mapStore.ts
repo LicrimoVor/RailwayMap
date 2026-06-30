@@ -28,7 +28,7 @@ export const useMapStore = create<MapState>((set) => ({
     railways: true,
     stations: false,
     electrification: true,
-    defects: true,
+    defects: false,
     events: true
   },
   selectedSegment: null,

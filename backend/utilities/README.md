@@ -37,17 +37,15 @@ Useful flags:
 
 ## Rebuild selectable railway chunks
 
-After importing railway segments, build the coarse render sections, detailed
-render sections, and selectable chunks:
+After importing railway segments, build the render sections and selectable chunks:
 
 ```powershell
-.\.venv\Scripts\python.exe utilities\rebuild_segment_sections_50km.py --section-length-m 50000
+.\.venv\Scripts\python.exe utilities\rebuild_segment_sections_10km.py --section-length-m 10000
 .\.venv\Scripts\python.exe utilities\rebuild_segment_chunks.py --chunk-length-m 100
 ```
 
-The frontend renders 50 km sections first. Near the detail zoom threshold it
-requests 50 km sections for the coarse map, and it requests 100 meter chunks
-only after a user clicks a coarse section.
+The frontend renders 10 km sections first, and it requests 100 meter chunks
+only after a user clicks a section.
 
 ## Export railway sections to CSV
 
@@ -55,12 +53,12 @@ only after a user clicks a coarse section.
 .\.venv\Scripts\python.exe utilities\export_railway_sections_csv.py --output data\railway_sections.csv
 ```
 
-Use `--kind 50km` or `--kind 100m` to export only one table. Use
+Use `--kind 10km` or `--kind 100m` to export only one table. Use
 `--no-geometry` when the CSV should stay compact.
 
 ## Remove duplicate railway rows
 
-Check duplicate segments, chunks, and 50 km sections without
+Check duplicate segments, chunks, and 10 km sections without
 deleting data:
 
 ```powershell

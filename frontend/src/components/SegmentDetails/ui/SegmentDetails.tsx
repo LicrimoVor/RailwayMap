@@ -3,7 +3,12 @@ import { displayValue, formatLength } from "../../../libs/railway";
 import { selectedChunksLength } from "../libs/selection";
 import type { SegmentDetailsProps } from "../model/types";
 
-export function SegmentDetails({ segment, selectedChunks, onCollapse, onClose }: SegmentDetailsProps) {
+export function SegmentDetails({
+  segment,
+  selectedChunks,
+  onCollapse,
+  onClose
+}: SegmentDetailsProps) {
   const selectedLength = selectedChunksLength(selectedChunks);
 
   return (
@@ -16,7 +21,8 @@ export function SegmentDetails({ segment, selectedChunks, onCollapse, onClose }:
           </h2>
           {selectedChunks.length > 0 && (
             <p className="mt-1 text-xs text-blue-700">
-              Выбрано 100 м участков: {selectedChunks.length.toLocaleString("ru-RU")}, {formatLength(selectedLength)}
+              Выбрано участков 100 м: {selectedChunks.length.toLocaleString("ru-RU")},{" "}
+              {formatLength(selectedLength)}
             </p>
           )}
         </div>
@@ -55,11 +61,11 @@ export function SegmentDetails({ segment, selectedChunks, onCollapse, onClose }:
 
           <section className="mt-5 space-y-3">
             <EmptyBlock
-              title="Выбранные 100 м участки"
+              title="Выбранные участки 100 м"
               value={
                 selectedChunks.length > 0
                   ? "Подсвеченные синим участки будут использованы как геометрия события."
-                  : "Нажмите на загруженные 100 м участки на карте, чтобы собрать произвольный фрагмент."
+                  : "Нажмите на загруженные участки 100 м на карте, чтобы собрать произвольный фрагмент."
               }
             />
             <EmptyBlock title="События" value="Связанные события не загружены" />
@@ -68,7 +74,9 @@ export function SegmentDetails({ segment, selectedChunks, onCollapse, onClose }:
           </section>
         </div>
       ) : (
-        <div className="p-4 text-sm text-neutral-600">Нажмите на железную дорогу, чтобы посмотреть атрибуты.</div>
+        <div className="p-4 text-sm text-neutral-600">
+          Нажмите на железную дорогу, чтобы посмотреть атрибуты.
+        </div>
       )}
     </aside>
   );

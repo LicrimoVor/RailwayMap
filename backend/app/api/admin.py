@@ -18,7 +18,7 @@ from app.models.events import Defect, EventType, Layer, RailwayEvent, SegmentPar
 from app.models.railway import RailwaySegment
 from app.services.chunks import (
     rebuild_segment_chunks,
-    rebuild_segment_sections_50km,
+    rebuild_segment_sections_10km,
 )
 
 router = APIRouter(tags=["admin"])
@@ -76,8 +76,8 @@ class RebuildChunksPayload(BaseModel):
     segment_ids: list[int] | None = None
 
 
-class RebuildSections50kmPayload(BaseModel):
-    section_length_m: float = Field(default=50_000.0, gt=0, le=200_000)
+class RebuildSections10kmPayload(BaseModel):
+    section_length_m: float = Field(default=10_000.0, gt=0, le=100_000)
     segment_ids: list[int] | None = None
 
 
@@ -249,12 +249,12 @@ def rebuild_chunks(
     return {"created": created, "chunk_length_m": payload.chunk_length_m}
 
 
-@router.post("/segment-sections-50km/rebuild")
-def rebuild_sections_50km(
-    payload: RebuildSections50kmPayload,
+@router.post("/segment-sections-10km/rebuild")
+def rebuild_sections_10km(
+    payload: RebuildSections10kmPayload,
     session: Session = Depends(get_session),
 ) -> dict[str, Any]:
-    created = rebuild_segment_sections_50km(
+    created = rebuild_segment_sections_10km(
         session,
         section_length_m=payload.section_length_m,
         segment_ids=payload.segment_ids,

@@ -12,13 +12,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import get_settings
-from app.services.chunks import rebuild_segment_sections_50km
+from app.services.chunks import rebuild_segment_sections_10km
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Rebuild 50 km railway sections.")
+    parser = argparse.ArgumentParser(description="Rebuild 10 km railway sections.")
     parser.add_argument("--database-url", default=None, help="SQLAlchemy database URL.")
-    parser.add_argument("--section-length-m", type=float, default=50_000.0, help="Target section length.")
+    parser.add_argument("--section-length-m", type=float, default=10_000.0, help="Target section length.")
     parser.add_argument("--segment-id", type=int, action="append", help="Limit rebuild to segment id.")
     return parser.parse_args()
 
@@ -30,14 +30,14 @@ def main() -> int:
     session_factory = sessionmaker(bind=engine, autoflush=True, autocommit=False)
 
     with session_factory() as session:
-        created = rebuild_segment_sections_50km(
+        created = rebuild_segment_sections_10km(
             session,
             section_length_m=args.section_length_m,
             segment_ids=args.segment_id,
         )
         session.commit()
 
-    print(f"Created {created} railway 50 km sections")
+    print(f"Created {created} railway 10 km sections")
     return 0
 
 
