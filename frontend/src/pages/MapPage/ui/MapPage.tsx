@@ -3,11 +3,17 @@ import { useQuery } from "@tanstack/react-query";
 import { AdminPanel } from "../../../components/AdminPanel";
 import { LayerPanel } from "../../../components/LayerPanel";
 import { MapCanvas } from "../../../components/MapCanvas";
-import { SegmentDetails } from "../../../components/SegmentDetails";
+import {
+	SegmentDetails,
+	type SegmentDetailsTab,
+} from "../../../components/SegmentDetails";
 import { StatusBar } from "../../../components/StatusBar";
 import { TopBar } from "../../../components/TopBar";
 import { useRailwayData } from "../libs/useRailwayData";
-import { buildRailwaySummary } from "../../../libs/railway";
+import {
+	buildRailwaySummary,
+	findFeatureBySelection,
+} from "../../../libs/railway";
 import {
 	emptyStationCollection,
 	fetchSegmentChunksForSection,
@@ -41,6 +47,8 @@ export const MapPage = memo(() => {
 	} = useRailwayData(viewport);
 	const [leftPanelOpen, setLeftPanelOpen] = useState(false);
 	const [rightPanelOpen, setRightPanelOpen] = useState(false);
+	const [rightPanelActiveTab, setRightPanelActiveTab] =
+		useState<SegmentDetailsTab>("details");
 	const {
 		clearSelectedChunks,
 		visibleLayers,
@@ -99,6 +107,10 @@ export const MapPage = memo(() => {
 			visibleLayers.stations,
 		],
 	);
+	const selectedFeature = useMemo(
+		() => findFeatureBySelection(mapRailwayData.segments, selectedSegment),
+		[mapRailwayData.segments, selectedSegment],
+	);
 	const handleViewportChange = useCallback(
 		(nextViewport: RailwayMapViewport) => {
 			const nextKey = viewportRequestKey(nextViewport);
@@ -115,11 +127,22 @@ export const MapPage = memo(() => {
 		(segment: RailwaySegmentProperties | null) => {
 			setSelectedSegment(segment);
 			if (segment) {
+				if (!rightPanelOpen) {
+					setRightPanelActiveTab("details");
+				}
 				setRightPanelOpen(true);
 			}
 		},
-		[setSelectedSegment],
+		[rightPanelOpen, setSelectedSegment],
 	);
+	const handleOpenRightPanel = useCallback(() => {
+		setRightPanelActiveTab("details");
+		setRightPanelOpen(true);
+	}, []);
+	const handleOpenElevationPanel = useCallback(() => {
+		setRightPanelActiveTab("elevation");
+		setRightPanelOpen(true);
+	}, []);
 	const handleRefresh = useCallback(() => {
 		if (viewport) {
 			const requests: Array<Promise<unknown>> = [
@@ -181,8 +204,10 @@ export const MapPage = memo(() => {
 					isLoading={pageLoading}
 					leftPanelOpen={leftPanelOpen}
 					rightPanelOpen={rightPanelOpen}
+					rightPanelActiveTab={rightPanelActiveTab}
 					onOpenLeftPanel={() => setLeftPanelOpen(true)}
-					onOpenRightPanel={() => setRightPanelOpen(true)}
+					onOpenRightPanel={handleOpenRightPanel}
+					onOpenElevationPanel={handleOpenElevationPanel}
 					onRefresh={handleRefresh}
 				/>
 			</div>
@@ -203,7 +228,10 @@ export const MapPage = memo(() => {
 				<div className="pointer-events-none absolute left-3 right-3 top-24 z-10 grid max-h-[calc(100%-7rem)] gap-3 overflow-y-auto md:bottom-5 md:left-auto md:right-5 md:w-96">
 					<SegmentDetails
 						segment={selectedSegment}
+						selectedFeature={selectedFeature}
 						selectedChunks={selectedChunks}
+						activeTab={rightPanelActiveTab}
+						onTabChange={setRightPanelActiveTab}
 						onCollapse={() => setRightPanelOpen(false)}
 						onClose={clearSelection}
 					/>

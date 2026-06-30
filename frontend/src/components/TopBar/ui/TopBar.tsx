@@ -1,4 +1,5 @@
 import {
+	Activity,
 	Database,
 	PanelLeftOpen,
 	PanelRightOpen,
@@ -12,8 +13,10 @@ export function TopBar({
 	isLoading,
 	leftPanelOpen,
 	rightPanelOpen,
+	rightPanelActiveTab,
 	onOpenLeftPanel,
 	onOpenRightPanel,
+	onOpenElevationPanel,
 	onRefresh,
 }: TopBarProps) {
 	return (
@@ -47,11 +50,21 @@ export function TopBar({
 					type="button"
 					aria-label="Открыть панель деталей"
 					onClick={onOpenRightPanel}
-					disabled={rightPanelOpen}
+					disabled={rightPanelOpen && rightPanelActiveTab === "details"}
 					className="inline-flex items-center gap-2 rounded border border-neutral-200 p-2 text-sm text-neutral-800 hover:bg-neutral-100 disabled:cursor-default disabled:opacity-40 sm:px-3"
 				>
 					<PanelRightOpen size={15} />
 					<span className="hidden sm:inline">Детали</span>
+				</button>
+				<button
+					type="button"
+					aria-label="Открыть профиль рельефа"
+					onClick={onOpenElevationPanel}
+					disabled={rightPanelOpen && rightPanelActiveTab === "elevation"}
+					className="inline-flex items-center gap-2 rounded border border-neutral-200 p-2 text-sm text-neutral-800 hover:bg-neutral-100 disabled:cursor-default disabled:opacity-40 sm:px-3"
+				>
+					<Activity size={15} />
+					<span className="hidden sm:inline">Рельеф</span>
 				</button>
 				<span
 					className={`hidden items-center gap-1 rounded px-2 py-1 text-xs md:flex ${

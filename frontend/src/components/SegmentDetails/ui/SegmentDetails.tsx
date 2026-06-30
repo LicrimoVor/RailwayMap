@@ -1,11 +1,16 @@
+import type { ReactNode } from "react";
 import { PanelRightClose, X } from "lucide-react";
+import { ElevationProfile } from "../../ElevationProfile";
 import { displayValue, formatLength } from "../../../libs/railway";
 import { selectedChunksLength } from "../libs/selection";
 import type { SegmentDetailsProps } from "../model/types";
 
 export function SegmentDetails({
   segment,
+  selectedFeature,
   selectedChunks,
+  activeTab,
+  onTabChange,
   onCollapse,
   onClose
 }: SegmentDetailsProps) {
@@ -46,7 +51,17 @@ export function SegmentDetails({
         </div>
       </header>
 
-      {segment ? (
+      <div className="grid grid-cols-2 border-b border-neutral-200 text-sm">
+        <TabButton active={activeTab === "details"} onClick={() => onTabChange("details")}>
+          Детали
+        </TabButton>
+        <TabButton active={activeTab === "elevation"} onClick={() => onTabChange("elevation")}>
+          Рельеф
+        </TabButton>
+      </div>
+
+      {activeTab === "details" ? (
+        segment ? (
         <div className="overflow-y-auto p-4">
           <dl className="grid grid-cols-2 gap-3 text-sm">
             <Detail label="Ветка" value={segment.branch} />
@@ -77,6 +92,9 @@ export function SegmentDetails({
         <div className="p-4 text-sm text-neutral-600">
           Нажмите на железную дорогу, чтобы посмотреть атрибуты.
         </div>
+        )
+      ) : (
+        <ElevationProfile feature={selectedFeature} />
       )}
     </aside>
   );
@@ -97,5 +115,29 @@ function EmptyBlock({ title, value }: { title: string; value: string }) {
       <h3 className="text-sm font-medium text-neutral-900">{title}</h3>
       <p className="mt-1 text-sm text-neutral-500">{value}</p>
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-4 py-2 text-left font-medium transition ${
+        active
+          ? "bg-neutral-900 text-white"
+          : "text-neutral-600 hover:bg-neutral-100 hover:text-neutral-950"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

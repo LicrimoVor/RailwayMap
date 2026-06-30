@@ -1,2 +1,2 @@
 export { SegmentDetails } from "./ui/SegmentDetails";
-export type { SegmentDetailsProps } from "./model/types";
+export type { SegmentDetailsProps, SegmentDetailsTab } from "./model/types";
